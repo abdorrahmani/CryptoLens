@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
 type CaesarCipherProcessor struct {
@@ -15,15 +17,22 @@ func NewCaesarCipherProcessor() *CaesarCipherProcessor {
 }
 
 func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
-	steps := []string{
-		"Caesar Cipher is one of the oldest known encryption methods.",
-		"It works by shifting each letter in the alphabet by a fixed number of positions.",
-		"In this implementation, we're using the classic shift of 3 positions.",
-		"Only letters are shifted; numbers and special characters remain unchanged.",
-	}
+	v := utils.NewVisualizer()
 
+	// Add introduction
+	v.AddStep("Caesar Cipher Encryption Process")
+	v.AddStep("=============================")
+	v.AddNote("Caesar Cipher is one of the oldest known encryption methods")
+	v.AddNote(fmt.Sprintf("Using shift value: %d", p.shift))
+	v.AddSeparator()
+
+	// Show original text
+	v.AddTextStep("Original Text", text)
+	v.AddArrow()
+
+	// Process each character
 	var result strings.Builder
-	for _, char := range text {
+	for i, char := range text {
 		if unicode.IsLetter(char) {
 			base := 'a'
 			if unicode.IsUpper(char) {
@@ -31,15 +40,39 @@ func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
 			}
 			shifted := (int(char)-int(base)+p.shift)%26 + int(base)
 			result.WriteRune(rune(shifted))
-			steps = append(steps, fmt.Sprintf("Shifted '%c' to '%c'", char, rune(shifted)))
+
+			// Show the transformation
+			v.AddStep(fmt.Sprintf("Character %d: '%c'", i+1, char))
+			v.AddStep(fmt.Sprintf("  ASCII value: %d", char))
+			v.AddStep(fmt.Sprintf("  Shifted by: %d", p.shift))
+			v.AddStep(fmt.Sprintf("  New value: %d", shifted))
+			v.AddStep(fmt.Sprintf("  Result: '%c'", rune(shifted)))
+			v.AddArrow()
 		} else {
 			result.WriteRune(char)
-			steps = append(steps, fmt.Sprintf("Kept '%c' unchanged (not a letter)", char))
+			v.AddStep(fmt.Sprintf("Character %d: '%c' (not a letter - kept unchanged)", i+1, char))
+			v.AddArrow()
 		}
 	}
 
-	steps = append(steps, "Note: Caesar Cipher is a simple substitution cipher and is not secure for modern use.")
-	steps = append(steps, "It can be easily broken by frequency analysis or brute force.")
+	// Show final result
+	v.AddTextStep("Encrypted Text", result.String())
 
-	return result.String(), steps, nil
+	// Show the alphabet and shift
+	v.AddSeparator()
+	v.AddStep("Alphabet Shift:")
+	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	shifted := alphabet[p.shift:] + alphabet[:p.shift]
+	v.AddStep(fmt.Sprintf("Original: %s", alphabet))
+	v.AddStep(fmt.Sprintf("Shifted:  %s", shifted))
+
+	// Add security notes
+	v.AddSeparator()
+	v.AddNote("Security Considerations:")
+	v.AddNote("1. Caesar Cipher is a simple substitution cipher")
+	v.AddNote("2. Only 25 possible keys (shifts)")
+	v.AddNote("3. Vulnerable to frequency analysis")
+	v.AddNote("4. Not suitable for modern security needs")
+
+	return result.String(), v.GetSteps(), nil
 }

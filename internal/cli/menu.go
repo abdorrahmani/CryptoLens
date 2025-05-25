@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
+	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
 type Menu struct {
@@ -87,11 +88,13 @@ func (m *Menu) handleChoice(choice int) error {
 		return err
 	}
 
-	fmt.Println("\nProcessing Steps:")
-	for i, step := range steps {
-		fmt.Printf("%d. %s\n", i+1, step)
+	// Create a visualizer and display the steps
+	v := utils.NewVisualizer()
+	for _, step := range steps {
+		v.AddStep(step)
 	}
+	v.Display()
 
-	fmt.Printf("\nResult: %s\n", result)
+	fmt.Printf("\nFinal Result: %s\n", result)
 	return nil
 }
