@@ -1,100 +1,69 @@
 package cli
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
-
-	"github.com/abdorrahmani/cryptolens/internal/crypto"
-	"github.com/abdorrahmani/cryptolens/internal/utils"
-)
-
+// Menu implements MenuInterface for handling the main application flow
 type Menu struct {
-	scanner *bufio.Scanner
+	display DisplayHandler
+	input   UserInputHandler
+	factory ProcessorFactory
 }
 
-func NewMenu() *Menu {
+// NewMenu creates a new menu instance
+func NewMenu(display DisplayHandler, input UserInputHandler, factory ProcessorFactory) *Menu {
 	return &Menu{
-		scanner: bufio.NewScanner(os.Stdin),
+		display: display,
+		input:   input,
+		factory: factory,
 	}
 }
 
+// Run executes the main menu loop
 func (m *Menu) Run() error {
+	m.display.ShowWelcome()
+
 	for {
-		m.displayMenu()
-		choice, err := m.getUserChoice()
+		m.display.ShowMenu()
+
+		choice, err := m.input.GetChoice()
 		if err != nil {
-			return err
+			m.display.ShowError(err)
+			continue
 		}
 
 		if choice == 5 {
-			fmt.Println("Thank you for using CryptoLens!")
+			m.display.ShowGoodbye()
 			return nil
 		}
 
-		if err := m.handleChoice(choice); err != nil {
-			fmt.Printf("Error: %v\n", err)
+		if err := m.processChoice(choice); err != nil {
+			m.display.ShowError(err)
 		}
 	}
 }
 
-func (m *Menu) displayMenu() {
-	fmt.Println("\nAvailable Encryption Methods:")
-	fmt.Println("1. Base64 Encoding")
-	fmt.Println("2. Caesar Cipher")
-	fmt.Println("3. AES Encryption")
-	fmt.Println("4. SHA-256 Hashing")
-	fmt.Println("5. Exit")
-	fmt.Print("\nEnter your choice (1-5): ")
-}
-
-func (m *Menu) getUserChoice() (int, error) {
-	m.scanner.Scan()
-	choice, err := strconv.Atoi(strings.TrimSpace(m.scanner.Text()))
+// processChoice handles the user's menu choice
+func (m *Menu) processChoice(choice int) error {
+	processor, err := m.factory.CreateProcessor(choice)
 	if err != nil {
-		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 5")
+		return err
 	}
-	if choice < 1 || choice > 5 {
-		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 5")
+
+	// Show prompt for user input
+	m.display.ShowMessage("")
+
+	// Get text input from user
+	text, err := m.input.GetText()
+	if err != nil {
+		return err
 	}
-	return choice, nil
-}
 
-func (m *Menu) handleChoice(choice int) error {
-	fmt.Print("\nEnter the text to process: ")
-	m.scanner.Scan()
-	text := m.scanner.Text()
-
-	var processor crypto.Processor
-	var err error
-
-	switch choice {
-	case 1:
-		processor = crypto.NewBase64Processor()
-	case 2:
-		processor = crypto.NewCaesarCipherProcessor()
-	case 3:
-		processor = crypto.NewAESProcessor()
-	case 4:
-		processor = crypto.NewSHA256Processor()
-	default:
-		return fmt.Errorf("invalid choice")
-	}
+	// Show the message being processed
+	m.display.ShowProcessingMessage(text)
 
 	result, steps, err := processor.Process(text)
 	if err != nil {
 		return err
 	}
 
-	// Create a visualizer and display the steps
-	v := utils.NewVisualizer()
-	for _, step := range steps {
-		v.AddStep(step)
-	}
-	v.Display()
-
-	fmt.Printf("\nFinal Result: %s\n", result)
+	m.display.ShowResult(result, steps)
 	return nil
 }
