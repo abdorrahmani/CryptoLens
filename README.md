@@ -23,30 +23,43 @@ CryptoLens is an educational CLI tool designed to help users understand various 
   - Binary-to-text encoding
   - Step-by-step visualization of the encoding process
   - ASCII and binary representations
+  - Support for both encoding and decoding operations
 
 - **Caesar Cipher**
   - Classical substitution cipher
   - Character-by-character transformation
   - Alphabet shift visualization
+  - Customizable shift value
+  - Support for both encryption and decryption
 
 - **AES Encryption**
-  - Modern symmetric encryption
+  - Modern symmetric encryption (AES-256)
   - Block cipher operations
-  - Key and IV handling
+  - Secure key and IV handling
+  - Support for both encryption and decryption
+  - Automatic key generation
 
 - **SHA-256 Hashing**
   - Cryptographic hash function
   - One-way transformation
   - Hash value generation
+  - Input validation and error handling
 
 ### 🎯 Key Features
-- Interactive CLI interface
+- Interactive CLI interface with intuitive menu system
 - Real-time step-by-step encryption process visualization
-- Detailed explanations of each algorithm
+- Detailed explanations of each algorithm's principles
 - Binary, hexadecimal, and ASCII representations
 - Educational notes and security considerations
+- Input validation and error handling
+- Factory pattern for encryption method selection
+- Modular and extensible architecture
 
 ## 🚀 Installation
+
+### Prerequisites
+- Go 1.21 or higher
+- Git (for installation from source)
 
 ### Using Go Install
 ```bash
@@ -55,19 +68,29 @@ go install github.com/abdorrahmani/cryptolens@latest
 
 ### From Source
 ```bash
+# Clone the repository
 git clone https://github.com/abdorrahmani/cryptolens.git
+
+# Navigate to project directory
 cd cryptolens
+
+# Build the project
 go build -o cryptolens cmd/cryptolens/main.go
+
+# Move the binary to your PATH (optional)
+mv cryptolens /usr/local/bin/
 ```
 
 ## 💻 Usage
 
+### Basic Usage
 Run the program:
 ```bash
 cryptolens
 ```
 
-Follow the interactive menu to:
+### Interactive Menu
+The program will present you with an interactive menu:
 1. Choose an encryption method (1-4)
 2. Enter your text
 3. View the detailed encryption process and explanation
@@ -95,21 +118,50 @@ Base64 Encoded: SGVsbG8=
 cryptolens/
 ├── cmd/
 │   └── cryptolens/
-│       └── main.go           # Main entry point
+│       └── main.go           # Application entry point
 ├── internal/
 │   ├── crypto/              # Encryption implementations
-│   │   ├── base64.go
-│   │   ├── caesar.go
-│   │   ├── aes.go
-│   │   └── sha256.go
-│   ├── cli/                 # CLI interface
-│   │   └── menu.go
+│   │   ├── base64.go        # Base64 encoding/decoding
+│   │   ├── caesar.go        # Caesar cipher implementation
+│   │   ├── aes.go           # AES encryption/decryption
+│   │   ├── sha256.go        # SHA-256 hashing
+│   │   └── processor.go     # Encryption processor interface
+│   ├── cli/                 # CLI interface components
+│   │   ├── menu.go          # Interactive menu system
+│   │   ├── display.go       # Output formatting
+│   │   ├── input.go         # User input handling
+│   │   ├── interfaces.go    # Interface definitions
+│   │   └── factory.go       # Encryption method factory
 │   └── utils/              # Utility functions
-│       └── visualizer.go
+│       └── visualizer.go    # Process visualization
 ├── assets/                 # Project assets
 ├── LICENSE
 └── README.md
 ```
+
+## 🔧 Development
+
+### Building from Source
+```bash
+# Clone the repository
+git clone https://github.com/abdorrahmani/cryptolens.git
+
+# Navigate to project directory
+cd cryptolens
+
+# Build the project
+go build -o cryptolens cmd/cryptolens/main.go
+
+# Run tests
+go test ./...
+```
+
+### Adding New Features
+1. Create a new encryption implementation in `internal/crypto/`
+2. Implement the required interfaces
+3. Add the new method to the factory in `internal/cli/factory.go`
+4. Update the menu system in `internal/cli/menu.go`
+5. Add appropriate tests
 
 ## 🤝 Contributing
 
@@ -121,7 +173,11 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Please make sure to update tests as appropriate.
+Please make sure to:
+- Update tests as appropriate
+- Follow the existing code style
+- Add documentation for new features
+- Update the README if necessary
 
 ## 📝 License
 
