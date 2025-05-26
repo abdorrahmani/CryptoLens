@@ -1,11 +1,13 @@
 version: 2
+project_name: cryptolens
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - env:
+  - id: cryptolens
+    env:
       - CGO_ENABLED=0
     goos:
       - linux

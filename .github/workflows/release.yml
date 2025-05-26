@@ -24,7 +24,7 @@ jobs:
         with:
           distribution: goreleaser
           version: v2.9.0
-          args: release --clean
+          args: release --clean --config=.goreleaser.yml
         env:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
