@@ -110,6 +110,33 @@ Binary Representation: 01001000 01100101 01101100 01101100 01101111
     ↓
 Base64 Encoded: SGVsbG8=
 =================================
+
+Decryption Process Visualization:
+=================================
+Base64 Decoding Process
+=====================
+Base64 Encoded Text: SGVsbG8=
+    ↓
+ASCII Values: 48 65 6c 6c 6f
+    ↓
+Binary Representation: 01001000 01100101 01101100 01101100 01101111
+    ↓
+Decoded Text: Hello
+=================================
+
+Caesar Cipher Example:
+=================================
+Encryption Process (Shift: 3)
+Original Text: Hello
+    ↓
+Encrypted Text: Khoor
+=================================
+
+Decryption Process (Shift: 3)
+Encrypted Text: Khoor
+    ↓
+Decrypted Text: Hello
+=================================
 ```
 
 ## 📁 Project Structure

@@ -3,7 +3,7 @@ package crypto
 // Processor defines the interface for all encryption/encoding methods
 type Processor interface {
 	// Process takes input text and returns the processed result and step-by-step explanation
-	Process(text string) (string, []string, error)
+	Process(text string, operation string) (string, []string, error)
 }
 
 // ConfigurableProcessor extends the Processor interface with configuration capabilities
@@ -28,3 +28,9 @@ func (p *BaseConfigurableProcessor) Configure(config map[string]interface{}) err
 func (p *BaseConfigurableProcessor) GetConfig() map[string]interface{} {
 	return p.config
 }
+
+// Operation types
+const (
+	OperationEncrypt = "encrypt"
+	OperationDecrypt = "decrypt"
+)

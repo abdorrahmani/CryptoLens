@@ -16,6 +16,7 @@ type ProcessorFactory interface {
 type UserInputHandler interface {
 	GetChoice() (int, error)
 	GetText() (string, error)
+	GetOperation() (string, error)
 }
 
 // DisplayHandler defines the contract for displaying output
@@ -27,4 +28,5 @@ type DisplayHandler interface {
 	ShowGoodbye()
 	ShowMessage(message string)
 	ShowProcessingMessage(message string)
+	ShowOperationPrompt()
 }

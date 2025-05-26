@@ -1,5 +1,9 @@
 package cli
 
+import (
+	"github.com/abdorrahmani/cryptolens/internal/crypto"
+)
+
 // Menu implements MenuInterface for handling the main application flow
 type Menu struct {
 	display DisplayHandler
@@ -47,8 +51,21 @@ func (m *Menu) processChoice(choice int) error {
 		return err
 	}
 
+	// Get operation choice (skip for SHA-256)
+	operation := crypto.OperationEncrypt
+	if choice != 4 { // Skip for SHA-256 (option 4)
+		operation, err = m.input.GetOperation()
+		if err != nil {
+			return err
+		}
+	}
+
 	// Show prompt for user input
-	m.display.ShowMessage("")
+	message := ""
+	if choice == 3 && operation == crypto.OperationDecrypt {
+		message = "aes_decrypt"
+	}
+	m.display.ShowMessage(message)
 
 	// Get text input from user
 	text, err := m.input.GetText()
@@ -59,7 +76,7 @@ func (m *Menu) processChoice(choice int) error {
 	// Show the message being processed
 	m.display.ShowProcessingMessage(text)
 
-	result, steps, err := processor.Process(text)
+	result, steps, err := processor.Process(text, operation)
 	if err != nil {
 		return err
 	}

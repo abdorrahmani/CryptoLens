@@ -12,7 +12,11 @@ func NewSHA256Processor() *SHA256Processor {
 	return &SHA256Processor{}
 }
 
-func (p *SHA256Processor) Process(text string) (string, []string, error) {
+func (p *SHA256Processor) Process(text string, operation string) (string, []string, error) {
+	if operation == OperationDecrypt {
+		return "", nil, fmt.Errorf("SHA-256 is a one-way hash function and cannot be decrypted")
+	}
+
 	steps := []string{
 		"SHA-256 is a cryptographic hash function that produces a 256-bit (32-byte) hash value.",
 		"It is a one-way function, meaning it cannot be reversed to recover the original input.",

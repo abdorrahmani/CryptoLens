@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/abdorrahmani/cryptolens/internal/crypto"
 )
 
 // ConsoleInput implements UserInputHandler for console input
@@ -39,4 +41,25 @@ func (i *ConsoleInput) GetText() (string, error) {
 		return "", fmt.Errorf("text cannot be empty")
 	}
 	return text, nil
+}
+
+func (i *ConsoleInput) GetOperation() (string, error) {
+	fmt.Printf("\n%sChoose operation:%s\n", colorBold, colorReset)
+	fmt.Printf("%s1.%s Encrypt\n", colorYellow, colorReset)
+	fmt.Printf("%s2.%s Decrypt\n", colorYellow, colorReset)
+	fmt.Printf("\n%sEnter your choice (1-2):%s ", colorGreen, colorReset)
+
+	i.scanner.Scan()
+	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
+	if err != nil {
+		return "", fmt.Errorf("invalid input: please enter a number between 1 and 2")
+	}
+	if choice < 1 || choice > 2 {
+		return "", fmt.Errorf("invalid choice: please enter a number between 1 and 2")
+	}
+
+	if choice == 1 {
+		return crypto.OperationEncrypt, nil
+	}
+	return crypto.OperationDecrypt, nil
 }

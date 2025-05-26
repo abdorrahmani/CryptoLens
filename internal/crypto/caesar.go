@@ -36,11 +36,11 @@ func (p *CaesarCipherProcessor) Configure(config map[string]interface{}) error {
 	return nil
 }
 
-func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
+func (p *CaesarCipherProcessor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
 	// Add introduction
-	v.AddStep("Caesar Cipher Encryption Process")
+	v.AddStep(fmt.Sprintf("Caesar Cipher %s Process", strings.Title(operation)))
 	v.AddStep("=============================")
 	v.AddNote("Caesar Cipher is one of the oldest known encryption methods")
 	v.AddNote(fmt.Sprintf("Using shift value: %d", p.shift))
@@ -52,19 +52,24 @@ func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
 
 	// Process each character
 	var result strings.Builder
+	shift := p.shift
+	if operation == OperationDecrypt {
+		shift = 26 - p.shift // Reverse the shift for decryption
+	}
+
 	for i, char := range text {
 		if unicode.IsLetter(char) {
 			base := 'a'
 			if unicode.IsUpper(char) {
 				base = 'A'
 			}
-			shifted := (int(char)-int(base)+p.shift)%26 + int(base)
+			shifted := (int(char)-int(base)+shift)%26 + int(base)
 			result.WriteRune(rune(shifted))
 
 			// Show the transformation
 			v.AddStep(fmt.Sprintf("Character %d: '%c'", i+1, char))
 			v.AddStep(fmt.Sprintf("  ASCII value: %d", char))
-			v.AddStep(fmt.Sprintf("  Shifted by: %d", p.shift))
+			v.AddStep(fmt.Sprintf("  Shifted by: %d", shift))
 			v.AddStep(fmt.Sprintf("  New value: %d", shifted))
 			v.AddStep(fmt.Sprintf("  Result: '%c'", rune(shifted)))
 			v.AddArrow()
@@ -76,13 +81,13 @@ func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
 	}
 
 	// Show final result
-	v.AddTextStep("Encrypted Text", result.String())
+	v.AddTextStep(fmt.Sprintf("%sed Text", strings.Title(operation)), result.String())
 
 	// Show the alphabet and shift
 	v.AddSeparator()
 	v.AddStep("Alphabet Shift:")
 	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	shifted := alphabet[p.shift:] + alphabet[:p.shift]
+	shifted := alphabet[shift:] + alphabet[:shift]
 	v.AddStep(fmt.Sprintf("Original: %s", alphabet))
 	v.AddStep(fmt.Sprintf("Shifted:  %s", shifted))
 

@@ -76,7 +76,7 @@ func (p *AESProcessor) loadOrGenerateKey() error {
 	return nil
 }
 
-func (p *AESProcessor) Process(text string) (string, []string, error) {
+func (p *AESProcessor) Process(text string, operation string) (string, []string, error) {
 	steps := []string{
 		"AES (Advanced Encryption Standard) is a symmetric encryption algorithm.",
 		"It uses the same key for both encryption and decryption.",
@@ -92,6 +92,34 @@ func (p *AESProcessor) Process(text string) (string, []string, error) {
 	block, err := aes.NewCipher(p.key)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create cipher: %v", err)
+	}
+
+	if operation == OperationDecrypt {
+		// Decode from base64
+		data, err := base64.StdEncoding.DecodeString(text)
+		if err != nil {
+			return "", nil, fmt.Errorf("invalid base64 string: %w", err)
+		}
+
+		// Extract IV and ciphertext
+		if len(data) < aes.BlockSize {
+			return "", nil, fmt.Errorf("ciphertext too short")
+		}
+		iv := data[:aes.BlockSize]
+		ciphertext := data[aes.BlockSize:]
+
+		// Decrypt
+		mode := cipher.NewCBCDecrypter(block, iv)
+		plaintext := make([]byte, len(ciphertext))
+		mode.CryptBlocks(plaintext, ciphertext)
+
+		// Unpad
+		unpadded, err := p.unpad(plaintext)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to unpad: %w", err)
+		}
+
+		return string(unpadded), steps, nil
 	}
 
 	// Create initialization vector
@@ -131,4 +159,15 @@ func (p *AESProcessor) pad(data []byte) []byte {
 		padtext[i] = byte(padding)
 	}
 	return padtext
+}
+
+func (p *AESProcessor) unpad(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty data")
+	}
+	padding := int(data[len(data)-1])
+	if padding > aes.BlockSize || padding == 0 {
+		return nil, fmt.Errorf("invalid padding")
+	}
+	return data[:len(data)-padding], nil
 }

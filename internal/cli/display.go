@@ -49,6 +49,9 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 // ShowError displays an error message
 func (d *ConsoleDisplay) ShowError(err error) {
 	fmt.Printf("\n%sError:%s %s%v%s\n", colorBold, colorReset, colorRed, err, colorReset)
+	if err.Error() == "invalid base64 string: illegal base64 data at input byte 0" {
+		fmt.Printf("%sNote: For AES decryption, please enter the previously encrypted text in base64 format%s\n", colorYellow, colorReset)
+	}
 	fmt.Printf("%s----------------------------------------%s\n", colorBlue, colorReset)
 }
 
@@ -67,11 +70,23 @@ func (d *ConsoleDisplay) ShowGoodbye() {
 
 // ShowMessage displays the prompt for user input
 func (d *ConsoleDisplay) ShowMessage(message string) {
-	fmt.Printf("\n%sEnter text to process:%s ", colorGreen, colorReset)
+	if message == "aes_decrypt" {
+		fmt.Printf("\n%sEnter the encrypted text (in base64 format):%s ", colorGreen, colorReset)
+	} else {
+		fmt.Printf("\n%sEnter text to process:%s ", colorGreen, colorReset)
+	}
 }
 
 // ShowProcessingMessage displays the message being processed
 func (d *ConsoleDisplay) ShowProcessingMessage(message string) {
 	fmt.Printf("\n%sProcessing message:%s %s%s%s\n", colorBold, colorReset, colorPurple, message, colorReset)
 	fmt.Printf("%s----------------------------------------%s\n", colorBlue, colorReset)
+}
+
+// ShowOperationPrompt displays the operation selection prompt
+func (d *ConsoleDisplay) ShowOperationPrompt() {
+	fmt.Printf("\n%sChoose operation:%s\n", colorBold, colorReset)
+	fmt.Printf("%s1.%s Encrypt\n", colorYellow, colorReset)
+	fmt.Printf("%s2.%s Decrypt\n", colorYellow, colorReset)
+	fmt.Printf("\n%sEnter your choice (1-2):%s ", colorGreen, colorReset)
 }
