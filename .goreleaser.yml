@@ -1,0 +1,79 @@
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    main: ./cmd/cryptolens
+    binary: cryptolens
+    dir: .
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - config.yaml
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+release:
+  draft: false
+  prerelease: false
+  name_template: "{{ .ProjectName }} v{{ .Version }}"
+  extra_files:
+    - glob: config.yaml
+      info: Configuration file
+    - glob: LICENSE
+      info: License file
+    - glob: README.md
+      info: Documentation
+    - glob: CHANGELOG.md
+      info: Changelog
+
+brews:
+  - name: cryptolens
+    tap:
+      owner: abdorrahmani
+      name: homebrew-tap
+    folder: Formula
+    homepage: "https://github.com/abdorrahmani/cryptolens"
+    description: "Interactive cryptography learning tool"
+    license: "MIT"
+    test: |
+      system "#{bin}/cryptolens --version"
+    install: |
+      bin.install "cryptolens" 
