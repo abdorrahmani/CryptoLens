@@ -1,0 +1,19 @@
+# CryptoLens Configuration
+
+# AES Encryption Settings
+aes:
+  defaultKeySize: 256  # Key size in bits (128, 192, or 256)
+  keyFile: "aes_key.bin"  # File to store AES keys
+
+# Base64 Settings
+base64:
+  paddingChar: "="  # Character used for padding
+
+# Caesar Cipher Settings
+caesar:
+  defaultShift: 3  # Default shift value for Caesar cipher
+
+# General Settings
+general:
+  logLevel: "info"  # Log level (debug, info, warn, error)
+  debug: false  # Enable debug mode 

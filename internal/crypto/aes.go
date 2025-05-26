@@ -6,24 +6,81 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"os"
 )
 
 type AESProcessor struct {
-	key []byte
+	BaseConfigurableProcessor
+	key     []byte
+	keySize int
+	keyFile string
 }
 
 func NewAESProcessor() *AESProcessor {
-	// In a real application, you would want to use a proper key derivation function
-	// and store the key securely. This is just for demonstration.
-	key := []byte("1234567890123456") // 16 bytes for AES-128
-	return &AESProcessor{key: key}
+	return &AESProcessor{
+		keySize: 256, // Default to AES-256
+		keyFile: "aes_key.bin",
+	}
+}
+
+// Configure implements the ConfigurableProcessor interface
+func (p *AESProcessor) Configure(config map[string]interface{}) error {
+	if err := p.BaseConfigurableProcessor.Configure(config); err != nil {
+		return err
+	}
+
+	// Configure key size if provided
+	if keySize, ok := config["keySize"].(int); ok {
+		switch keySize {
+		case 128, 192, 256:
+			p.keySize = keySize
+		default:
+			return fmt.Errorf("invalid key size: %d (must be 128, 192, or 256)", keySize)
+		}
+	}
+
+	// Configure key file if provided
+	if keyFile, ok := config["keyFile"].(string); ok {
+		p.keyFile = keyFile
+	}
+
+	// Load or generate key
+	if err := p.loadOrGenerateKey(); err != nil {
+		return fmt.Errorf("failed to load/generate key: %w", err)
+	}
+
+	return nil
+}
+
+func (p *AESProcessor) loadOrGenerateKey() error {
+	// Try to load existing key
+	if key, err := os.ReadFile(p.keyFile); err == nil {
+		if len(key) == p.keySize/8 {
+			p.key = key
+			return nil
+		}
+	}
+
+	// Generate new key
+	key := make([]byte, p.keySize/8)
+	if _, err := rand.Read(key); err != nil {
+		return fmt.Errorf("failed to generate key: %w", err)
+	}
+
+	// Save key to file
+	if err := os.WriteFile(p.keyFile, key, 0600); err != nil {
+		return fmt.Errorf("failed to save key: %w", err)
+	}
+
+	p.key = key
+	return nil
 }
 
 func (p *AESProcessor) Process(text string) (string, []string, error) {
 	steps := []string{
 		"AES (Advanced Encryption Standard) is a symmetric encryption algorithm.",
 		"It uses the same key for both encryption and decryption.",
-		"This implementation uses AES-128 in CBC mode with PKCS7 padding.",
+		fmt.Sprintf("This implementation uses AES-%d in CBC mode with PKCS7 padding.", p.keySize),
 		"The process involves:",
 		"1. Generating a random initialization vector (IV)",
 		"2. Padding the data to match the block size",

@@ -9,11 +9,31 @@ import (
 )
 
 type CaesarCipherProcessor struct {
+	BaseConfigurableProcessor
 	shift int
 }
 
 func NewCaesarCipherProcessor() *CaesarCipherProcessor {
-	return &CaesarCipherProcessor{shift: 3} // Classic Caesar shift of 3
+	return &CaesarCipherProcessor{
+		shift: 3, // Classic Caesar shift of 3
+	}
+}
+
+// Configure implements the ConfigurableProcessor interface
+func (p *CaesarCipherProcessor) Configure(config map[string]interface{}) error {
+	if err := p.BaseConfigurableProcessor.Configure(config); err != nil {
+		return err
+	}
+
+	// Configure shift value if provided
+	if shift, ok := config["shift"].(int); ok {
+		if shift < 0 || shift > 25 {
+			return fmt.Errorf("shift value must be between 0 and 25")
+		}
+		p.shift = shift
+	}
+
+	return nil
 }
 
 func (p *CaesarCipherProcessor) Process(text string) (string, []string, error) {
