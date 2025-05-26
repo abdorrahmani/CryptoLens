@@ -60,20 +60,15 @@ release:
   name_template: "{{ .ProjectName }} v{{ .Version }}"
   extra_files:
     - glob: config.yaml
-      info: Configuration file
     - glob: LICENSE
-      info: License file
     - glob: README.md
-      info: Documentation
     - glob: CHANGELOG.md
-      info: Changelog
 
 brews:
   - name: cryptolens
-    tap:
+    github:
       owner: abdorrahmani
       name: homebrew-tap
-    folder: Formula
     homepage: "https://github.com/abdorrahmani/cryptolens"
     description: "Interactive cryptography learning tool"
     license: "MIT"
