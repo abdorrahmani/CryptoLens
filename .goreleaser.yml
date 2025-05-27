@@ -55,6 +55,9 @@ snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
 release:
+  github:
+    owner: abdorrahmani
+    name: cryptolens
   draft: false
   prerelease: false
   name_template: "{{ .ProjectName }} v{{ .Version }}"
@@ -62,17 +65,4 @@ release:
     - glob: config.yaml
     - glob: LICENSE
     - glob: README.md
-    - glob: CHANGELOG.md
-
-brews:
-  - name: cryptolens
-    tap:
-      owner: abdorrahmani
-      name: homebrew-tap
-    homepage: "https://github.com/abdorrahmani/cryptolens"
-    description: "Interactive cryptography learning tool"
-    license: "MIT"
-    test: |
-      system "#{bin}/cryptolens --version"
-    install: |
-      bin.install "cryptolens" 
+    - glob: CHANGELOG.md 
