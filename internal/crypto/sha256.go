@@ -35,7 +35,7 @@ func (p *SHA256Processor) Process(text string, operation string) (string, []stri
 
 	// Get the final hash
 	hashBytes := hash.Sum(nil)
-	steps = append(steps, fmt.Sprintf("Generated 32-byte (256-bit) hash"))
+	steps = append(steps, "Generated 32-byte (256-bit) hash")
 
 	// Convert to hexadecimal
 	hashString := hex.EncodeToString(hashBytes)
