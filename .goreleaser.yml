@@ -38,7 +38,6 @@ archives:
       - LICENSE
       - README.md
       - CHANGELOG.md
-      - config.yaml
 
 changelog:
   use: git
@@ -62,7 +61,6 @@ release:
   prerelease: false
   name_template: "{{ .ProjectName }} v{{ .Version }}"
   extra_files:
-    - glob: config.yaml
     - glob: LICENSE
     - glob: README.md
     - glob: CHANGELOG.md 
