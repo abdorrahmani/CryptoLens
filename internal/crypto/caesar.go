@@ -6,6 +6,8 @@ import (
 	"unicode"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type CaesarCipherProcessor struct {
@@ -40,7 +42,7 @@ func (p *CaesarCipherProcessor) Process(text string, operation string) (string, 
 	v := utils.NewVisualizer()
 
 	// Add introduction
-	v.AddStep(fmt.Sprintf("Caesar Cipher %s Process", strings.Title(operation)))
+	v.AddStep(fmt.Sprintf("Caesar Cipher %s Process", cases.Title(language.English).String(operation)))
 	v.AddStep("=============================")
 	v.AddNote("Caesar Cipher is one of the oldest known encryption methods")
 	v.AddNote(fmt.Sprintf("Using shift value: %d", p.shift))
@@ -81,7 +83,7 @@ func (p *CaesarCipherProcessor) Process(text string, operation string) (string, 
 	}
 
 	// Show final result
-	v.AddTextStep(fmt.Sprintf("%sed Text", strings.Title(operation)), result.String())
+	v.AddTextStep(fmt.Sprintf("%sed Text", cases.Title(language.English).String(operation)), result.String())
 
 	// Show the alphabet and shift
 	v.AddSeparator()

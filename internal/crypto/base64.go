@@ -3,9 +3,10 @@ package crypto
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Base64Processor struct {
@@ -40,7 +41,7 @@ func (p *Base64Processor) Process(text string, operation string) (string, []stri
 	v := utils.NewVisualizer()
 
 	// Add introduction
-	v.AddStep(fmt.Sprintf("Base64 %s Process", strings.Title(operation)))
+	v.AddStep(fmt.Sprintf("Base64 %s Process", cases.Title(language.English).String(operation)))
 	v.AddStep("=====================")
 	v.AddNote("Base64 is a binary-to-text encoding scheme that represents binary data in ASCII string format")
 	v.AddSeparator()
