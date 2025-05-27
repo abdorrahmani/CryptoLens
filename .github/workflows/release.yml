@@ -26,7 +26,7 @@ jobs:
           version: v2.9.0
           args: release --clean --config=.goreleaser.yml
         env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
   test:
     name: Test
