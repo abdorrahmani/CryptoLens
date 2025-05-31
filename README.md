@@ -45,6 +45,14 @@ CryptoLens is an educational CLI tool designed to help users understand various 
   - Hash value generation
   - Input validation and error handling
 
+- **RSA Encryption**
+  - Asymmetric encryption (RSA-2048)
+  - Public/private key pair generation
+  - Secure key storage in project directory
+  - Support for both encryption and decryption
+  - Automatic key pair management
+  - Base64 encoded output for encrypted data
+
 ### 🎯 Key Features
 - Interactive CLI interface with intuitive menu system
 - Real-time step-by-step encryption process visualization
@@ -54,6 +62,8 @@ CryptoLens is an educational CLI tool designed to help users understand various 
 - Input validation and error handling
 - Factory pattern for encryption method selection
 - Modular and extensible architecture
+- Secure key storage in project directory
+- Cross-platform compatibility (Windows, Linux, macOS)
 
 ## 🚀 Installation
 
@@ -91,10 +101,17 @@ cryptolens
 
 ### Interactive Menu
 The program will present you with an interactive menu:
-1. Choose an encryption method (1-4)
+1. Choose an encryption method (1-5)
 2. Enter your text
 3. View the detailed encryption process and explanation
 4. See the final result
+
+### Key Storage
+- Encryption keys are stored in the `keys` directory in the project root
+- RSA keys are stored as PEM files
+- AES keys are stored as binary files
+- The `keys` directory is automatically created on first run
+- Keys are securely stored with appropriate file permissions
 
 ### Example Output
 ```
@@ -124,18 +141,14 @@ Binary Representation: 01001000 01100101 01101100 01101100 01101111
 Decoded Text: Hello
 =================================
 
-Caesar Cipher Example:
+RSA Encryption Example:
 =================================
-Encryption Process (Shift: 3)
-Original Text: Hello
+Encryption Process
+Using RSA key size: 2048 bits
     ↓
-Encrypted Text: Khoor
-=================================
-
-Decryption Process (Shift: 3)
-Encrypted Text: Khoor
+Encrypted with public key: [base64 encoded data]
     ↓
-Decrypted Text: Hello
+Decrypted with private key: Hello
 =================================
 ```
 
@@ -152,6 +165,7 @@ cryptolens/
 │   │   ├── caesar.go        # Caesar cipher implementation
 │   │   ├── aes.go           # AES encryption/decryption
 │   │   ├── sha256.go        # SHA-256 hashing
+│   │   ├── rsa.go           # RSA encryption/decryption
 │   │   └── processor.go     # Encryption processor interface
 │   ├── cli/                 # CLI interface components
 │   │   ├── menu.go          # Interactive menu system
@@ -161,6 +175,10 @@ cryptolens/
 │   │   └── factory.go       # Encryption method factory
 │   └── utils/              # Utility functions
 │       └── visualizer.go    # Process visualization
+├── keys/                   # Encryption keys storage
+│   ├── rsa_private.pem     # RSA private key
+│   ├── rsa_public.pem      # RSA public key
+│   └── aes_key.bin         # AES key
 ├── assets/                 # Project assets
 ├── LICENSE
 └── README.md
