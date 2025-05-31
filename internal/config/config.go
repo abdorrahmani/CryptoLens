@@ -8,36 +8,91 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the application configuration
+// ConfigProvider defines the interface for configuration management
+type ConfigProvider interface {
+	GetAESConfig() AESConfig
+	GetBase64Config() Base64Config
+	GetCaesarConfig() CaesarConfig
+	GetRSAConfig() RSAConfig
+	GetGeneralConfig() GeneralConfig
+	Save(path string) error
+}
+
+// AESConfig represents AES-specific configuration
+type AESConfig struct {
+	DefaultKeySize int    `yaml:"defaultKeySize"`
+	KeyFile        string `yaml:"keyFile"`
+}
+
+// Base64Config represents Base64-specific configuration
+type Base64Config struct {
+	PaddingChar string `yaml:"paddingChar"`
+}
+
+// CaesarConfig represents Caesar cipher-specific configuration
+type CaesarConfig struct {
+	DefaultShift int `yaml:"defaultShift"`
+}
+
+// RSAConfig represents RSA-specific configuration
+type RSAConfig struct {
+	KeySize        int    `yaml:"keySize"`
+	PublicKeyFile  string `yaml:"publicKeyFile"`
+	PrivateKeyFile string `yaml:"privateKeyFile"`
+}
+
+// GeneralConfig represents general application settings
+type GeneralConfig struct {
+	LogLevel string `yaml:"logLevel"`
+	Debug    bool   `yaml:"debug"`
+}
+
+// Config implements ConfigProvider interface
 type Config struct {
-	// AES configuration
-	AES struct {
-		DefaultKeySize int    `yaml:"defaultKeySize"`
-		KeyFile        string `yaml:"keyFile"`
-	} `yaml:"aes"`
+	AES     AESConfig     `yaml:"aes"`
+	Base64  Base64Config  `yaml:"base64"`
+	Caesar  CaesarConfig  `yaml:"caesar"`
+	RSA     RSAConfig     `yaml:"rsa"`
+	General GeneralConfig `yaml:"general"`
+}
 
-	// Base64 configuration
-	Base64 struct {
-		PaddingChar string `yaml:"paddingChar"`
-	} `yaml:"base64"`
+// GetAESConfig returns the AES configuration
+func (c *Config) GetAESConfig() AESConfig {
+	return c.AES
+}
 
-	// Caesar cipher configuration
-	Caesar struct {
-		DefaultShift int `yaml:"defaultShift"`
-	} `yaml:"caesar"`
+// GetBase64Config returns the Base64 configuration
+func (c *Config) GetBase64Config() Base64Config {
+	return c.Base64
+}
 
-	// RSA configuration
-	RSA struct {
-		KeySize        int    `yaml:"keySize"`
-		PublicKeyFile  string `yaml:"publicKeyFile"`
-		PrivateKeyFile string `yaml:"privateKeyFile"`
-	} `yaml:"rsa"`
+// GetCaesarConfig returns the Caesar cipher configuration
+func (c *Config) GetCaesarConfig() CaesarConfig {
+	return c.Caesar
+}
 
-	// General settings
-	General struct {
-		LogLevel string `yaml:"logLevel"`
-		Debug    bool   `yaml:"debug"`
-	} `yaml:"general"`
+// GetRSAConfig returns the RSA configuration
+func (c *Config) GetRSAConfig() RSAConfig {
+	return c.RSA
+}
+
+// GetGeneralConfig returns the general configuration
+func (c *Config) GetGeneralConfig() GeneralConfig {
+	return c.General
+}
+
+// Save saves the configuration to the specified file
+func (c *Config) Save(path string) error {
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }
 
 // LoadConfig loads the configuration from the specified file

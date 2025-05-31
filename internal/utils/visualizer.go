@@ -5,52 +5,32 @@ import (
 	"strings"
 )
 
-// ANSI color codes
-const (
-	colorReset        = "\033[0m"
-	colorRed          = "\033[31m"
-	colorGreen        = "\033[32m"
-	colorYellow       = "\033[33m"
-	colorBlue         = "\033[34m"
-	colorPurple       = "\033[35m"
-	colorCyan         = "\033[36m"
-	colorWhite        = "\033[37m"
-	colorBold         = "\033[1m"
-	colorDim          = "\033[2m"
-	colorItalic       = "\033[3m"
-	colorUnderline    = "\033[4m"
-	colorBrightRed    = "\033[91m"
-	colorBrightGreen  = "\033[92m"
-	colorBrightYellow = "\033[93m"
-	colorBrightBlue   = "\033[94m"
-	colorBrightPurple = "\033[95m"
-	colorBrightCyan   = "\033[96m"
-)
-
 // Visualizer helps display encryption steps in a graphical format
 type Visualizer struct {
 	steps []string
+	theme Theme
 }
 
 // NewVisualizer creates a new visualizer instance
 func NewVisualizer() *Visualizer {
 	return &Visualizer{
 		steps: make([]string, 0),
+		theme: DefaultTheme,
 	}
 }
 
 // AddStep adds a step to the visualization
 func (v *Visualizer) AddStep(step string) {
 	if strings.HasPrefix(step, "Note:") {
-		v.steps = append(v.steps, fmt.Sprintf("%s%s%s", colorDim, step, colorReset))
+		v.steps = append(v.steps, v.theme.Format(step, "dim"))
 	} else if strings.HasPrefix(step, "How") || strings.HasPrefix(step, "Security") {
-		v.steps = append(v.steps, fmt.Sprintf("\n%s%s%s", colorBold, step, colorReset))
+		v.steps = append(v.steps, v.theme.Format(step, "bold"))
 	} else if strings.Contains(step, "->") {
-		v.steps = append(v.steps, fmt.Sprintf("%s%s%s", colorBrightYellow, step, colorReset))
+		v.steps = append(v.steps, v.theme.Format(step, "brightYellow"))
 	} else if strings.HasPrefix(step, "Character") {
-		v.steps = append(v.steps, fmt.Sprintf("%s%s%s", colorBrightPurple, step, colorReset))
+		v.steps = append(v.steps, v.theme.Format(step, "brightPurple"))
 	} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
-		v.steps = append(v.steps, fmt.Sprintf("%s%s%s", colorBrightBlue, step, colorReset))
+		v.steps = append(v.steps, v.theme.Format(step, "brightBlue"))
 	} else {
 		v.steps = append(v.steps, step)
 	}
@@ -60,38 +40,38 @@ func (v *Visualizer) AddStep(step string) {
 func (v *Visualizer) AddBinaryStep(label string, data []byte) {
 	binary := make([]string, len(data))
 	for i, b := range data {
-		binary[i] = fmt.Sprintf("%s%08b%s", colorBrightYellow, b, colorReset)
+		binary[i] = v.theme.Format(fmt.Sprintf("%08b", b), "brightYellow")
 	}
-	v.steps = append(v.steps, fmt.Sprintf("%s%s%s:%s %s", colorBold, colorBrightBlue, label, colorReset, strings.Join(binary, " ")))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(binary, " ")), "brightBlue bold"))
 }
 
 // AddHexStep adds a step showing hexadecimal representation
 func (v *Visualizer) AddHexStep(label string, data []byte) {
 	hex := make([]string, len(data))
 	for i, b := range data {
-		hex[i] = fmt.Sprintf("%s%02x%s", colorBrightGreen, b, colorReset)
+		hex[i] = v.theme.Format(fmt.Sprintf("%02x", b), "brightGreen")
 	}
-	v.steps = append(v.steps, fmt.Sprintf("%s%s%s:%s %s", colorBold, colorBrightBlue, label, colorReset, strings.Join(hex, " ")))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(hex, " ")), "brightBlue bold"))
 }
 
 // AddTextStep adds a step showing text representation
 func (v *Visualizer) AddTextStep(label string, text string) {
-	v.steps = append(v.steps, fmt.Sprintf("%s%s%s:%s %s%s%s", colorBold, colorBrightPurple, label, colorReset, colorPurple, text, colorReset))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, text), "brightPurple bold"))
 }
 
 // AddArrow adds a visual arrow to show transformation
 func (v *Visualizer) AddArrow() {
-	v.steps = append(v.steps, fmt.Sprintf("%s%s    ↓%s", colorBrightYellow, colorBold, colorReset))
+	v.steps = append(v.steps, v.theme.Format("    ↓", "brightYellow bold"))
 }
 
 // AddSeparator adds a visual separator
 func (v *Visualizer) AddSeparator() {
-	v.steps = append(v.steps, fmt.Sprintf("%s%s----------------------------------------%s", colorDim, colorBlue, colorReset))
+	v.steps = append(v.steps, v.theme.Format("----------------------------------------", "dim blue"))
 }
 
 // AddNote adds an explanatory note
 func (v *Visualizer) AddNote(note string) {
-	v.steps = append(v.steps, fmt.Sprintf("%s%sNote:%s %s", colorDim, colorYellow, colorReset, note))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("Note: %s", note), "dim yellow"))
 }
 
 // GetSteps returns all visualization steps
@@ -101,10 +81,10 @@ func (v *Visualizer) GetSteps() []string {
 
 // Display prints the visualization to the console
 func (v *Visualizer) Display() {
-	fmt.Printf("\n%s%sEncryption Process Visualization:%s\n", colorBold, colorBrightCyan, colorReset)
-	fmt.Printf("%s%s=================================%s\n", colorDim, colorBlue, colorReset)
+	fmt.Printf("\n%s\n", v.theme.Format("Encryption Process Visualization:", "bold brightCyan"))
+	fmt.Printf("%s\n", v.theme.Format("=================================", "dim blue"))
 	for _, step := range v.steps {
 		fmt.Println(step)
 	}
-	fmt.Printf("%s%s=================================%s\n", colorDim, colorBlue, colorReset)
+	fmt.Printf("%s\n", v.theme.Format("=================================", "dim blue"))
 }

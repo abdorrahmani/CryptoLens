@@ -8,17 +8,20 @@ import (
 	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
+	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
 // ConsoleInput implements UserInputHandler for console input
 type ConsoleInput struct {
 	scanner *bufio.Scanner
+	theme   utils.Theme
 }
 
 // NewConsoleInput creates a new console input handler
 func NewConsoleInput() *ConsoleInput {
 	return &ConsoleInput{
 		scanner: bufio.NewScanner(os.Stdin),
+		theme:   utils.DefaultTheme,
 	}
 }
 
@@ -44,10 +47,10 @@ func (i *ConsoleInput) GetText() (string, error) {
 }
 
 func (i *ConsoleInput) GetOperation() (string, error) {
-	fmt.Printf("\n%sChoose operation:%s\n", colorBold, colorReset)
-	fmt.Printf("%s1.%s Encrypt\n", colorYellow, colorReset)
-	fmt.Printf("%s2.%s Decrypt\n", colorYellow, colorReset)
-	fmt.Printf("\n%sEnter your choice (1-2):%s ", colorGreen, colorReset)
+	fmt.Printf("\n%s\n", i.theme.Format("Choose operation:", "bold"))
+	fmt.Printf("%s\n", i.theme.Format("1. Encrypt", "yellow"))
+	fmt.Printf("%s\n", i.theme.Format("2. Decrypt", "yellow"))
+	fmt.Printf("\n%s", i.theme.Format("Enter your choice (1-2): ", "green"))
 
 	i.scanner.Scan()
 	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
