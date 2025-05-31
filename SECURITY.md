@@ -6,6 +6,7 @@ We currently support the following versions with security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.1.x   | :white_check_mark: |
 | 1.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
@@ -42,12 +43,25 @@ This information will help us triage your report more quickly.
 - Secure communication protocols are used for data in transit
 - Access controls are implemented to protect sensitive information
 - Regular backups are performed with encryption
+- RSA keys are stored with proper file permissions (0600 for private keys)
+- AES keys are stored securely in binary format
+- All encryption keys are stored in a dedicated `keys` directory
+
+### Key Management
+- RSA key pairs are generated with 2048-bit minimum key size
+- Private keys are stored with restricted permissions (0600)
+- Public keys are stored with read-only permissions (0644)
+- Keys are stored in the project's `keys` directory
+- Automatic key generation with secure random number generation
+- Key files are stored in PEM format for RSA keys
+- Cross-platform key storage compatibility
 
 ### Access Control
 - Principle of least privilege is followed
 - Multi-factor authentication is required for sensitive operations
 - Regular access reviews are conducted
 - Session management and timeout policies are enforced
+- File system permissions are properly set for key storage
 
 ## Security Updates
 
@@ -69,6 +83,10 @@ We recommend following these security best practices:
 3. Enable two-factor authentication when available
 4. Regularly review access logs and permissions
 5. Report any suspicious activity immediately
+6. Keep your encryption keys secure and backed up
+7. Use the latest version of CryptoLens
+8. Regularly rotate encryption keys
+9. Monitor the `keys` directory for unauthorized changes
 
 ## Contact
 
