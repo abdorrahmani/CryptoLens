@@ -54,4 +54,15 @@ tmp/
 temp/
 
 # Build output
-build/ 
+build/
+
+# Encryption keys and certificates
+keys/
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+*.bin 
