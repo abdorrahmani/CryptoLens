@@ -26,6 +26,13 @@ type Config struct {
 		DefaultShift int `yaml:"defaultShift"`
 	} `yaml:"caesar"`
 
+	// RSA configuration
+	RSA struct {
+		KeySize        int    `yaml:"keySize"`
+		PublicKeyFile  string `yaml:"publicKeyFile"`
+		PrivateKeyFile string `yaml:"privateKeyFile"`
+	} `yaml:"rsa"`
+
 	// General settings
 	General struct {
 		LogLevel string `yaml:"logLevel"`
@@ -72,6 +79,24 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
+	// Get the project root directory (where the executable is)
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get executable path: %w", err)
+	}
+	projectRoot := filepath.Dir(execPath)
+
+	// Create keys directory in project root
+	keysDir := filepath.Join(projectRoot, "keys")
+	if err := os.MkdirAll(keysDir, 0700); err != nil {
+		return nil, fmt.Errorf("failed to create keys directory: %w", err)
+	}
+
+	// Update key paths to use project root
+	config.RSA.PublicKeyFile = filepath.Join(keysDir, "rsa_public.pem")
+	config.RSA.PrivateKeyFile = filepath.Join(keysDir, "rsa_private.pem")
+	config.AES.KeyFile = filepath.Join(keysDir, "aes_key.bin")
+
 	return &config, nil
 }
 
@@ -93,15 +118,29 @@ func SaveConfig(configPath string, config *Config) error {
 func createDefaultConfig() *Config {
 	config := &Config{}
 
+	// Get the project root directory (where the executable is)
+	execPath, err := os.Executable()
+	if err != nil {
+		// Fallback to current directory if executable path can't be determined
+		execPath = "."
+	}
+	projectRoot := filepath.Dir(execPath)
+	keysDir := filepath.Join(projectRoot, "keys")
+
 	// Set AES defaults
 	config.AES.DefaultKeySize = 256
-	config.AES.KeyFile = "aes_key.bin"
+	config.AES.KeyFile = filepath.Join(keysDir, "aes_key.bin")
 
 	// Set Base64 defaults
 	config.Base64.PaddingChar = "="
 
 	// Set Caesar defaults
 	config.Caesar.DefaultShift = 3
+
+	// Set RSA defaults
+	config.RSA.KeySize = 2048
+	config.RSA.PublicKeyFile = filepath.Join(keysDir, "rsa_public.pem")
+	config.RSA.PrivateKeyFile = filepath.Join(keysDir, "rsa_private.pem")
 
 	// Set General defaults
 	config.General.LogLevel = "info"

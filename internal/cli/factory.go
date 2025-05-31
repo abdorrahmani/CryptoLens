@@ -59,6 +59,23 @@ func (f *CryptoProcessorFactory) CreateProcessor(choice int) (crypto.Processor, 
 		}
 	case 4:
 		return crypto.NewSHA256Processor(), nil
+	case 5:
+		processor = crypto.NewRSAProcessor()
+		if f.config != nil {
+			// Ensure key size is at least 2048 bits for security
+			keySize := f.config.RSA.KeySize
+			if keySize < 2048 {
+				keySize = 2048
+			}
+			config := map[string]interface{}{
+				"keySize":        keySize,
+				"publicKeyFile":  f.config.RSA.PublicKeyFile,
+				"privateKeyFile": f.config.RSA.PrivateKeyFile,
+			}
+			if err := processor.Configure(config); err != nil {
+				return nil, fmt.Errorf("failed to configure RSA processor: %w", err)
+			}
+		}
 	default:
 		return nil, fmt.Errorf("invalid processor choice: %d", choice)
 	}

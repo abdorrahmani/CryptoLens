@@ -13,6 +13,12 @@ base64:
 caesar:
   defaultShift: 3  # Default shift value for Caesar cipher
 
+# RSA Settings
+rsa:
+  keySize: 2048  # Key size in bits
+  publicKeyFile: "rsa_public.pem"  # File to store public key
+  privateKeyFile: "rsa_private.pem"  # File to store private key
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)

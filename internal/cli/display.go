@@ -42,8 +42,9 @@ func (d *ConsoleDisplay) ShowMenu() {
 	fmt.Printf("%s2.%s Caesar Cipher\n", colorYellow, colorReset)
 	fmt.Printf("%s3.%s AES Encryption\n", colorYellow, colorReset)
 	fmt.Printf("%s4.%s SHA-256 Hashing\n", colorYellow, colorReset)
-	fmt.Printf("%s5.%s Exit\n", colorYellow, colorReset)
-	fmt.Printf("\n%sEnter your choice (1-5):%s ", colorGreen, colorReset)
+	fmt.Printf("%s5.%s RSA Encryption\n", colorYellow, colorReset)
+	fmt.Printf("%s6.%s Exit\n", colorYellow, colorReset)
+	fmt.Printf("\n%sEnter your choice (1-6):%s ", colorGreen, colorReset)
 }
 
 // ShowResult displays the processing result and steps
