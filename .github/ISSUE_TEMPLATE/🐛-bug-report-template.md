@@ -1,13 +1,11 @@
 ---
-name: Bug report
+name: "\U0001F41B Bug Report Template"
 about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: abdorrahmani
 
 ---
-
-# 🐛 Bug Report Template
 
 ## Issue Title
 Please provide a clear, concise title for your bug report. Example formats:

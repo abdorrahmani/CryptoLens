@@ -1,5 +1,5 @@
 ---
-name: Feature request
+name: "✨ Feature Request Template"
 about: Suggest an idea for this project
 title: ''
 labels: enhancement
