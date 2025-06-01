@@ -7,7 +7,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 <div align="center">
-  <img src="assets/logo.png" alt="CryptoLens Logo" width="200"/>
+  <img src="assets/CryptoLens.png" alt="CryptoLens Logo" width="250"/>
   
   *Your Interactive Cryptography Learning Tool*
 </div>
