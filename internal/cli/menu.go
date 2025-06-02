@@ -107,8 +107,9 @@ func GetHMACHashAlgorithm() string {
 	fmt.Println("3. SHA-512")
 	fmt.Println("4. BLAKE2b-256")
 	fmt.Println("5. BLAKE2b-512")
+	fmt.Println("6. BLAKE3")
 
-	choice := GetIntInput("Enter your choice (1-5): ", 1, 5)
+	choice := GetIntInput("Enter your choice (1-6): ", 1, 6)
 
 	switch choice {
 	case 1:
@@ -121,6 +122,8 @@ func GetHMACHashAlgorithm() string {
 		return "blake2b-256"
 	case 5:
 		return "blake2b-512"
+	case 6:
+		return "blake3"
 	default:
 		fmt.Println("Invalid choice. Defaulting to SHA-256")
 		return "sha256"

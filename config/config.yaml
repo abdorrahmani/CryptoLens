@@ -23,13 +23,14 @@ rsa:
 hmac:
   keySize: 256  # Key size in bits
   keyFile: "hmac_key.bin"  # File to store HMAC key
-  hashAlgorithm: "sha256"  # Hash algorithm to use (sha1, sha256, sha512, blake2b-256, blake2b-512)
+  hashAlgorithm: "sha256"  # Hash algorithm to use (sha1, sha256, sha512, blake2b-256, blake2b-512, blake3)
   availableAlgorithms:  # List of available hash algorithms
     - "sha1"
     - "sha256"
     - "sha512"
     - "blake2b-256"
     - "blake2b-512"
+    - "blake3"
 
 # General Settings
 general:

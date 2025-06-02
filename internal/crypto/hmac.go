@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -24,6 +25,7 @@ const (
 	HashSHA512     = "sha512"
 	HashBLAKE2b256 = "blake2b-256"
 	HashBLAKE2b512 = "blake2b-512"
+	HashBLAKE3     = "blake3"
 )
 
 type HMACProcessor struct {
@@ -62,10 +64,10 @@ func (p *HMACProcessor) Configure(config map[string]interface{}) error {
 	if hashAlgo, ok := config["hashAlgorithm"].(string); ok {
 		if hashAlgo != "" {
 			switch hashAlgo {
-			case HashSHA1, HashSHA256, HashSHA512, HashBLAKE2b256, HashBLAKE2b512:
+			case HashSHA1, HashSHA256, HashSHA512, HashBLAKE2b256, HashBLAKE2b512, HashBLAKE3:
 				p.hashAlgorithm = hashAlgo
 			default:
-				return fmt.Errorf("unsupported hash algorithm: %s (must be one of: sha1, sha256, sha512, blake2b-256, blake2b-512)", hashAlgo)
+				return fmt.Errorf("unsupported hash algorithm: %s (must be one of: sha1, sha256, sha512, blake2b-256, blake2b-512, blake3)", hashAlgo)
 			}
 		}
 	}
@@ -121,6 +123,10 @@ func (p *HMACProcessor) getHashFunction() (func() hash.Hash, error) {
 			h, _ := blake2b.New512(nil)
 			return h
 		}, nil
+	case HashBLAKE3:
+		return func() hash.Hash {
+			return blake3.New()
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported hash algorithm: %s", p.hashAlgorithm)
 	}
@@ -139,8 +145,30 @@ func (p *HMACProcessor) getBlockSize() int {
 		return 64
 	case HashBLAKE2b512:
 		return 128
+	case HashBLAKE3:
+		return 64
 	default:
 		return 64 // Default to SHA-256 block size
+	}
+}
+
+// getOutputSize returns the output size in bytes for the selected hash algorithm
+func (p *HMACProcessor) getOutputSize() int {
+	switch p.hashAlgorithm {
+	case HashSHA1:
+		return 20 // 160 bits
+	case HashSHA256:
+		return 32 // 256 bits
+	case HashSHA512:
+		return 64 // 512 bits
+	case HashBLAKE2b256:
+		return 32 // 256 bits
+	case HashBLAKE2b512:
+		return 64 // 512 bits
+	case HashBLAKE3:
+		return 32 // 256 bits by default
+	default:
+		return 32 // Default to SHA-256 size
 	}
 }
 
@@ -255,16 +283,80 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	hmacBase64 := base64.StdEncoding.EncodeToString(hmacResult)
 	v.AddTextStep(fmt.Sprintf("HMAC Result (Base64) - %d bytes", len(hmacResult)), hmacBase64)
 
-	// Add hash algorithm explanation section
-	v.AddSeparator()
+	// Add hash algorithm information
 	v.AddStep("Hash Algorithm Information:")
-	v.AddStep("1. SHA-1 (160-bit): Legacy algorithm, not recommended for new systems")
-	v.AddStep("2. SHA-256 (256-bit): Widely used, good balance of security and performance")
-	v.AddStep("3. SHA-512 (512-bit): Higher security margin, slower than SHA-256")
-	v.AddStep("4. BLAKE2b-256 (256-bit): Faster than SHA-256, modern design")
-	v.AddStep("5. BLAKE2b-512 (512-bit): Highest security margin, fastest of all options")
-	v.AddNote("BLAKE2b provides better performance than SHA-2 family while maintaining security")
-	v.AddNote("SHA-256 is the most widely used and provides a good balance of security and performance")
+	v.AddStep(fmt.Sprintf("Selected Algorithm: %s", p.hashAlgorithm))
+	v.AddStep(fmt.Sprintf("Block Size: %d bytes", p.getBlockSize()))
+	v.AddStep(fmt.Sprintf("Output Size: %d bytes", p.getOutputSize()))
+	v.AddStep("")
+	v.AddStep("Available Algorithms:")
+
+	// Show all algorithms with the selected one highlighted
+	algorithms := []struct {
+		name    string
+		details []string
+	}{
+		{
+			name: HashSHA1,
+			details: []string{
+				"- SHA-1: 160-bit (20 bytes) output",
+				"- Note: SHA-1 is considered cryptographically broken and should not be used for security-critical applications",
+			},
+		},
+		{
+			name: HashSHA256,
+			details: []string{
+				"- SHA-256: 256-bit (32 bytes) output",
+				"- Part of the SHA-2 family",
+				"- Widely used in security applications and protocols",
+			},
+		},
+		{
+			name: HashSHA512,
+			details: []string{
+				"- SHA-512: 512-bit (64 bytes) output",
+				"- Part of the SHA-2 family",
+				"- Provides higher security margin than SHA-256",
+			},
+		},
+		{
+			name: HashBLAKE2b256,
+			details: []string{
+				"- BLAKE2b-256: 256-bit (32 bytes) output",
+				"- Faster than SHA-256 on 64-bit platforms",
+				"- Used in many cryptocurrencies and security applications",
+			},
+		},
+		{
+			name: HashBLAKE2b512,
+			details: []string{
+				"- BLAKE2b-512: 512-bit (64 bytes) output",
+				"- Faster than SHA-512 on 64-bit platforms",
+				"- Used in many cryptocurrencies and security applications",
+			},
+		},
+		{
+			name: HashBLAKE3,
+			details: []string{
+				"- BLAKE3: 256-bit (32 bytes) output by default",
+				"- Successor to BLAKE2, offering even better performance",
+				"- Features parallel processing and tree hashing",
+				"- Used in modern security applications and protocols",
+			},
+		},
+	}
+
+	for _, algo := range algorithms {
+		if algo.name == p.hashAlgorithm {
+			v.AddStep(fmt.Sprintf("→ %s (Currently Selected)", algo.name))
+		} else {
+			v.AddStep(fmt.Sprintf("  %s", algo.name))
+		}
+		for _, detail := range algo.details {
+			v.AddStep(detail)
+		}
+		v.AddStep("")
+	}
 
 	// Show how it works
 	v.AddSeparator()
