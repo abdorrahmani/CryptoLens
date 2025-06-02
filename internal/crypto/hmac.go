@@ -107,6 +107,39 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddHexStep("HMAC Key", p.key)
 	v.AddArrow()
 
+	// Demonstrate key preparation
+	blockSize := getBlockSize(p.hashAlgorithm)
+	v.AddStep("Key Preparation:")
+	v.AddStep("1. If key length > block size, hash it")
+	v.AddStep("2. If key length < block size, pad with zeros")
+	v.AddStep(fmt.Sprintf("Block size for %s: %d bytes", p.hashAlgorithm, blockSize))
+
+	// Pad key to block size if needed
+	paddedKey := make([]byte, blockSize)
+	copy(paddedKey, p.key)
+	v.AddHexStep("Padded Key", paddedKey)
+	v.AddArrow()
+
+	// Demonstrate inner padding
+	v.AddStep("Inner Padding Creation:")
+	v.AddStep("1. Create a block-sized buffer filled with 0x36")
+	innerPad := createPadding(0x36, blockSize)
+	v.AddHexStep("Inner Padding Buffer", innerPad)
+	v.AddStep("2. XOR the padded key with the inner padding")
+	innerKey := xorBytes(paddedKey, innerPad)
+	v.AddHexStep("Inner Key (Key XOR 0x36)", innerKey)
+	v.AddArrow()
+
+	// Demonstrate outer padding
+	v.AddStep("Outer Padding Creation:")
+	v.AddStep("1. Create a block-sized buffer filled with 0x5c")
+	outerPad := createPadding(0x5c, blockSize)
+	v.AddHexStep("Outer Padding Buffer", outerPad)
+	v.AddStep("2. XOR the padded key with the outer padding")
+	outerKey := xorBytes(paddedKey, outerPad)
+	v.AddHexStep("Outer Key (Key XOR 0x5c)", outerKey)
+	v.AddArrow()
+
 	// Create HMAC
 	var h hash.Hash
 	if p.hashAlgorithm == "sha256" {
@@ -117,7 +150,9 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 
 	// Write the message to the HMAC
 	h.Write([]byte(text))
-	v.AddStep("Combined key and message using HMAC algorithm")
+	v.AddStep("HMAC Calculation:")
+	v.AddStep("1. Hash(innerKey || message)")
+	v.AddStep("2. Hash(outerKey || result)")
 	v.AddArrow()
 
 	// Get the HMAC
@@ -149,4 +184,33 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddNote("5. HMAC is a one-way function - the original message cannot be recovered")
 
 	return hmacString, v.GetSteps(), nil
+}
+
+// Helper function to get block size for hash algorithm
+func getBlockSize(algorithm string) int {
+	if algorithm == "sha256" {
+		return 64 // SHA-256 block size
+	}
+	return 128 // SHA-512 block size
+}
+
+// Helper function to create padding buffer
+func createPadding(value byte, size int) []byte {
+	padding := make([]byte, size)
+	for i := range padding {
+		padding[i] = value
+	}
+	return padding
+}
+
+// Helper function to XOR two byte slices
+func xorBytes(a, b []byte) []byte {
+	if len(a) != len(b) {
+		return nil
+	}
+	result := make([]byte, len(a))
+	for i := range a {
+		result[i] = a[i] ^ b[i]
+	}
+	return result
 }
