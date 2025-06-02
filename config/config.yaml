@@ -19,6 +19,12 @@ rsa:
   publicKeyFile: "rsa_public.pem"  # File to store public key
   privateKeyFile: "rsa_private.pem"  # File to store private key
 
+# HMAC Settings
+hmac:
+  keySize: 256  # Key size in bits
+  keyFile: "hmac_key.bin"  # File to store HMAC key
+  hashAlgorithm: "sha256"  # Hash algorithm to use (sha256, sha512)
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)

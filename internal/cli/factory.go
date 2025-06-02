@@ -31,6 +31,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(3, createAESProcessor)
 	factory.RegisterProcessor(4, createSHA256Processor)
 	factory.RegisterProcessor(5, createRSAProcessor)
+	factory.RegisterProcessor(6, createHMACProcessor)
 
 	return factory
 }
@@ -115,6 +116,21 @@ func createRSAProcessor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure RSA processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createHMACProcessor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewHMACProcessor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"keySize":       cfg.GetHMACConfig().KeySize,
+			"keyFile":       cfg.GetHMACConfig().KeyFile,
+			"hashAlgorithm": cfg.GetHMACConfig().HashAlgorithm,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure HMAC processor: %w", err)
 		}
 	}
 	return processor, nil

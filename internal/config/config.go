@@ -14,6 +14,7 @@ type ConfigProvider interface {
 	GetBase64Config() Base64Config
 	GetCaesarConfig() CaesarConfig
 	GetRSAConfig() RSAConfig
+	GetHMACConfig() HMACConfig
 	GetGeneralConfig() GeneralConfig
 	Save(path string) error
 }
@@ -41,6 +42,13 @@ type RSAConfig struct {
 	PrivateKeyFile string `yaml:"privateKeyFile"`
 }
 
+// HMACConfig represents HMAC-specific configuration
+type HMACConfig struct {
+	KeySize       int    `yaml:"keySize"`
+	KeyFile       string `yaml:"keyFile"`
+	HashAlgorithm string `yaml:"hashAlgorithm"`
+}
+
 // GeneralConfig represents general application settings
 type GeneralConfig struct {
 	LogLevel string `yaml:"logLevel"`
@@ -53,6 +61,7 @@ type Config struct {
 	Base64  Base64Config  `yaml:"base64"`
 	Caesar  CaesarConfig  `yaml:"caesar"`
 	RSA     RSAConfig     `yaml:"rsa"`
+	HMAC    HMACConfig    `yaml:"hmac"`
 	General GeneralConfig `yaml:"general"`
 }
 
@@ -74,6 +83,11 @@ func (c *Config) GetCaesarConfig() CaesarConfig {
 // GetRSAConfig returns the RSA configuration
 func (c *Config) GetRSAConfig() RSAConfig {
 	return c.RSA
+}
+
+// GetHMACConfig returns the HMAC configuration
+func (c *Config) GetHMACConfig() HMACConfig {
+	return c.HMAC
 }
 
 // GetGeneralConfig returns the general configuration
@@ -151,6 +165,15 @@ func LoadConfig(configPath string) (*Config, error) {
 	config.RSA.PublicKeyFile = filepath.Join(keysDir, "rsa_public.pem")
 	config.RSA.PrivateKeyFile = filepath.Join(keysDir, "rsa_private.pem")
 	config.AES.KeyFile = filepath.Join(keysDir, "aes_key.bin")
+	config.HMAC.KeyFile = filepath.Join(keysDir, "hmac_key.bin")
+
+	// Ensure HMAC config has default values if not set
+	if config.HMAC.KeySize == 0 {
+		config.HMAC.KeySize = 256
+	}
+	if config.HMAC.HashAlgorithm == "" {
+		config.HMAC.HashAlgorithm = "sha256"
+	}
 
 	return &config, nil
 }
@@ -196,6 +219,11 @@ func createDefaultConfig() *Config {
 	config.RSA.KeySize = 2048
 	config.RSA.PublicKeyFile = filepath.Join(keysDir, "rsa_public.pem")
 	config.RSA.PrivateKeyFile = filepath.Join(keysDir, "rsa_private.pem")
+
+	// Set HMAC defaults
+	config.HMAC.KeySize = 256
+	config.HMAC.KeyFile = filepath.Join(keysDir, "hmac_key.bin")
+	config.HMAC.HashAlgorithm = "sha256"
 
 	// Set General defaults
 	config.General.LogLevel = "info"

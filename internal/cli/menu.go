@@ -33,7 +33,7 @@ func (m *Menu) Run() error {
 			continue
 		}
 
-		if choice == 6 {
+		if choice == 7 {
 			m.display.ShowGoodbye()
 			return nil
 		}
@@ -51,9 +51,9 @@ func (m *Menu) processChoice(choice int) error {
 		return err
 	}
 
-	// Get operation choice (skip for SHA-256)
+	// Get operation choice (skip for SHA-256 and HMAC)
 	operation := crypto.OperationEncrypt
-	if choice != 4 { // Skip for SHA-256 (option 4)
+	if choice != 4 && choice != 6 { // Skip for SHA-256 (option 4) and HMAC (option 6)
 		operation, err = m.input.GetOperation()
 		if err != nil {
 			return err
