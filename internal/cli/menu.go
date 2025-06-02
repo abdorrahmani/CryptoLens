@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
 )
 
@@ -60,6 +62,18 @@ func (m *Menu) processChoice(choice int) error {
 		}
 	}
 
+	// Configure HMAC processor if selected
+	if choice == 6 { // HMAC option
+		if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
+			hashAlgo := GetHMACHashAlgorithm()
+			if err := configurable.Configure(map[string]interface{}{
+				"hashAlgorithm": hashAlgo,
+			}); err != nil {
+				return fmt.Errorf("failed to configure HMAC processor: %w", err)
+			}
+		}
+	}
+
 	// Show prompt for user input
 	message := ""
 	if choice == 3 && operation == crypto.OperationDecrypt {
@@ -83,4 +97,32 @@ func (m *Menu) processChoice(choice int) error {
 
 	m.display.ShowResult(result, steps)
 	return nil
+}
+
+// GetHMACHashAlgorithm prompts user to select a hash algorithm for HMAC
+func GetHMACHashAlgorithm() string {
+	fmt.Println("\nSelect Hash Algorithm:")
+	fmt.Println("1. SHA-1")
+	fmt.Println("2. SHA-256")
+	fmt.Println("3. SHA-512")
+	fmt.Println("4. BLAKE2b-256")
+	fmt.Println("5. BLAKE2b-512")
+
+	choice := GetIntInput("Enter your choice (1-5): ", 1, 5)
+
+	switch choice {
+	case 1:
+		return "sha1"
+	case 2:
+		return "sha256"
+	case 3:
+		return "sha512"
+	case 4:
+		return "blake2b-256"
+	case 5:
+		return "blake2b-512"
+	default:
+		fmt.Println("Invalid choice. Defaulting to SHA-256")
+		return "sha256"
+	}
 }

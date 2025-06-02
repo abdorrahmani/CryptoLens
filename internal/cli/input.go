@@ -66,3 +66,17 @@ func (i *ConsoleInput) GetOperation() (string, error) {
 	}
 	return crypto.OperationDecrypt, nil
 }
+
+// GetIntInput prompts for an integer input within a specified range
+func GetIntInput(prompt string, min, max int) int {
+	for {
+		fmt.Print(prompt)
+		var input int
+		_, err := fmt.Scanln(&input)
+		if err != nil || input < min || input > max {
+			fmt.Printf("Please enter a number between %d and %d\n", min, max)
+			continue
+		}
+		return input
+	}
+}

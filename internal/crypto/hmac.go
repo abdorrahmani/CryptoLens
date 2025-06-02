@@ -3,14 +3,26 @@ package crypto
 import (
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hash"
 	"os"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"golang.org/x/crypto/blake2b"
+)
+
+// Available hash algorithms
+const (
+	HashSHA1       = "sha1"
+	HashSHA256     = "sha256"
+	HashSHA512     = "sha512"
+	HashBLAKE2b256 = "blake2b-256"
+	HashBLAKE2b512 = "blake2b-512"
 )
 
 type HMACProcessor struct {
@@ -25,7 +37,7 @@ func NewHMACProcessor() *HMACProcessor {
 	return &HMACProcessor{
 		keySize:       256,
 		keyFile:       "hmac_key.bin",
-		hashAlgorithm: "sha256",
+		hashAlgorithm: HashSHA256,
 	}
 }
 
@@ -48,10 +60,12 @@ func (p *HMACProcessor) Configure(config map[string]interface{}) error {
 	// Configure hash algorithm if provided
 	if hashAlgo, ok := config["hashAlgorithm"].(string); ok {
 		if hashAlgo != "" {
-			if hashAlgo != "sha256" && hashAlgo != "sha512" {
-				return fmt.Errorf("unsupported hash algorithm: %s (must be sha256 or sha512)", hashAlgo)
+			switch hashAlgo {
+			case HashSHA1, HashSHA256, HashSHA512, HashBLAKE2b256, HashBLAKE2b512:
+				p.hashAlgorithm = hashAlgo
+			default:
+				return fmt.Errorf("unsupported hash algorithm: %s (must be one of: sha1, sha256, sha512, blake2b-256, blake2b-512)", hashAlgo)
 			}
-			p.hashAlgorithm = hashAlgo
 		}
 	}
 
@@ -87,6 +101,48 @@ func (p *HMACProcessor) loadOrGenerateKey() error {
 	return nil
 }
 
+// getHashFunction returns the appropriate hash function for the selected algorithm
+func (p *HMACProcessor) getHashFunction() (func() hash.Hash, error) {
+	switch p.hashAlgorithm {
+	case HashSHA1:
+		return sha1.New, nil
+	case HashSHA256:
+		return sha256.New, nil
+	case HashSHA512:
+		return sha512.New, nil
+	case HashBLAKE2b256:
+		return func() hash.Hash {
+			h, _ := blake2b.New256(nil)
+			return h
+		}, nil
+	case HashBLAKE2b512:
+		return func() hash.Hash {
+			h, _ := blake2b.New512(nil)
+			return h
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported hash algorithm: %s", p.hashAlgorithm)
+	}
+}
+
+// getBlockSize returns the block size for the selected hash algorithm
+func (p *HMACProcessor) getBlockSize() int {
+	switch p.hashAlgorithm {
+	case HashSHA1:
+		return 64
+	case HashSHA256:
+		return 64
+	case HashSHA512:
+		return 128
+	case HashBLAKE2b256:
+		return 64
+	case HashBLAKE2b512:
+		return 128
+	default:
+		return 64 // Default to SHA-256 block size
+	}
+}
+
 func (p *HMACProcessor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
@@ -108,7 +164,7 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddArrow()
 
 	// Demonstrate key preparation
-	blockSize := getBlockSize(p.hashAlgorithm)
+	blockSize := p.getBlockSize()
 	v.AddStep("Key Preparation:")
 	v.AddStep("1. If key length > block size, hash it")
 	v.AddStep("2. If key length < block size, pad with zeros")
@@ -141,12 +197,11 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddArrow()
 
 	// Create HMAC
-	var h hash.Hash
-	if p.hashAlgorithm == "sha256" {
-		h = hmac.New(sha256.New, p.key)
-	} else {
-		h = hmac.New(sha512.New, p.key)
+	hashFunc, err := p.getHashFunction()
+	if err != nil {
+		return "", nil, err
 	}
+	h := hmac.New(hashFunc, p.key)
 
 	// Write the message to the HMAC
 	h.Write([]byte(text))
@@ -157,12 +212,16 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 
 	// Get the HMAC
 	hmacResult := h.Sum(nil)
-	v.AddHexStep("HMAC Result", hmacResult)
+	v.AddHexStep("HMAC Result (Raw Bytes)", hmacResult)
 	v.AddArrow()
 
 	// Convert to hexadecimal
-	hmacString := hex.EncodeToString(hmacResult)
-	v.AddTextStep("Hexadecimal HMAC", hmacString)
+	hmacHex := hex.EncodeToString(hmacResult)
+	v.AddTextStep("HMAC Result (Hex)", hmacHex)
+
+	// Convert to Base64
+	hmacBase64 := base64.StdEncoding.EncodeToString(hmacResult)
+	v.AddTextStep("HMAC Result (Base64)", hmacBase64)
 
 	// Show how it works
 	v.AddSeparator()
@@ -182,16 +241,11 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddNote("3. HMAC is resistant to length extension attacks")
 	v.AddNote("4. The security depends on the underlying hash function")
 	v.AddNote("5. HMAC is a one-way function - the original message cannot be recovered")
+	v.AddNote(fmt.Sprintf("6. Using %s as the underlying hash function", p.hashAlgorithm))
 
-	return hmacString, v.GetSteps(), nil
-}
-
-// Helper function to get block size for hash algorithm
-func getBlockSize(algorithm string) int {
-	if algorithm == "sha256" {
-		return 64 // SHA-256 block size
-	}
-	return 128 // SHA-512 block size
+	// Return both formats in the result
+	result := fmt.Sprintf("Hex: %s\nBase64: %s", hmacHex, hmacBase64)
+	return result, v.GetSteps(), nil
 }
 
 // Helper function to create padding buffer
