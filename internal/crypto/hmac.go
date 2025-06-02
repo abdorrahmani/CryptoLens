@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash"
 	"os"
+	"time"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 	"golang.org/x/crypto/blake2b"
@@ -203,25 +204,67 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	}
 	h := hmac.New(hashFunc, p.key)
 
-	// Write the message to the HMAC
+	// Measure execution time with multiple iterations for precision
+	const iterations = 1000
+	var totalTime time.Duration
+
+	// Warm-up iteration
 	h.Write([]byte(text))
+	h.Sum(nil)
+
+	// Measure multiple iterations
+	for i := 0; i < iterations; i++ {
+		h.Reset()
+		startTime := time.Now()
+		h.Write([]byte(text))
+		h.Sum(nil)
+		totalTime += time.Since(startTime)
+	}
+
+	// Calculate average time
+	avgTime := totalTime / iterations
+
+	// Format execution time with higher precision
+	var timeStr string
+	if avgTime < time.Millisecond {
+		timeStr = fmt.Sprintf("%.3fµs", float64(avgTime.Nanoseconds())/1000.0)
+	} else {
+		timeStr = fmt.Sprintf("%.3fms", float64(avgTime.Milliseconds()))
+	}
+	v.AddNote(fmt.Sprintf("Current algorithm (%s) execution time: %s (avg of %d iterations)", p.hashAlgorithm, timeStr, iterations))
+
+	// Calculate final HMAC for actual use
+	h.Reset()
+	h.Write([]byte(text))
+	hmacResult := h.Sum(nil)
+
 	v.AddStep("HMAC Calculation:")
 	v.AddStep("1. Hash(innerKey || message)")
 	v.AddStep("2. Hash(outerKey || result)")
 	v.AddArrow()
 
-	// Get the HMAC
-	hmacResult := h.Sum(nil)
+	// Show the HMAC result
 	v.AddHexStep("HMAC Result (Raw Bytes)", hmacResult)
 	v.AddArrow()
 
 	// Convert to hexadecimal
 	hmacHex := hex.EncodeToString(hmacResult)
-	v.AddTextStep("HMAC Result (Hex)", hmacHex)
+	v.AddTextStep(fmt.Sprintf("HMAC Result (Hex) - %d bytes", len(hmacResult)), hmacHex)
 
 	// Convert to Base64
 	hmacBase64 := base64.StdEncoding.EncodeToString(hmacResult)
-	v.AddTextStep("HMAC Result (Base64)", hmacBase64)
+	v.AddTextStep(fmt.Sprintf("HMAC Result (Base64) - %d bytes", len(hmacResult)), hmacBase64)
+
+	// Add hash algorithm explanation section
+	v.AddSeparator()
+	v.AddStep("Hash Algorithm Information:")
+	v.AddStep("1. SHA-1 (160-bit): Legacy algorithm, not recommended for new systems")
+	v.AddStep("2. SHA-256 (256-bit): Widely used, good balance of security and performance")
+	v.AddStep("3. SHA-512 (512-bit): Higher security margin, slower than SHA-256")
+	v.AddStep("4. BLAKE2b-256 (256-bit): Faster than SHA-256, modern design")
+	v.AddStep("5. BLAKE2b-512 (512-bit): Highest security margin, fastest of all options")
+	v.AddNote("BLAKE2b provides better performance than SHA-2 family while maintaining security")
+	v.AddNote("SHA-256 is the most widely used and provides a good balance of security and performance")
 
 	// Show how it works
 	v.AddSeparator()
