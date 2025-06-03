@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/argon2"
@@ -94,6 +96,27 @@ func (p *PBKDFProcessor) Process(password string, operation string) (string, []s
 		return "", nil, fmt.Errorf("password cannot be empty")
 	}
 
+	// Add password strength warnings
+	steps := []string{
+		fmt.Sprintf("Using %s for key derivation", p.algorithm),
+	}
+
+	// Password strength analysis
+	if len(password) < 8 {
+		steps = append(steps, "⚠️  Warning: Password is too short (less than 8 characters)")
+		steps = append(steps, "    This makes it more vulnerable to brute-force attacks")
+		steps = append(steps, "    Recommendation: Use at least 12 characters")
+	} else if len(password) < 12 {
+		steps = append(steps, "⚠️  Warning: Password could be stronger")
+		steps = append(steps, "    Recommendation: Use at least 12 characters")
+	}
+
+	// Check for common patterns
+	if isCommonPassword(password) {
+		steps = append(steps, "⚠️  Warning: This appears to be a common password pattern")
+		steps = append(steps, "    Recommendation: Use a more unique password")
+	}
+
 	// Ensure salt is initialized
 	if p.salt == nil || len(p.salt) == 0 {
 		salt := make([]byte, 16)
@@ -103,10 +126,7 @@ func (p *PBKDFProcessor) Process(password string, operation string) (string, []s
 		p.salt = salt
 	}
 
-	steps := []string{
-		fmt.Sprintf("Using %s for key derivation", p.algorithm),
-		fmt.Sprintf("Salt (base64): %s", base64.StdEncoding.EncodeToString(p.salt)),
-	}
+	steps = append(steps, fmt.Sprintf("Salt (base64): %s", base64.StdEncoding.EncodeToString(p.salt)))
 
 	var derivedKey []byte
 	var err error
@@ -266,7 +286,41 @@ func (p *PBKDFProcessor) Process(password string, operation string) (string, []s
 	steps = append(steps, "2. Parameters are chosen for security and performance balance")
 	steps = append(steps, "3. Key derivation is a one-way process")
 	steps = append(steps, "4. Never store the original password")
+	steps = append(steps, "5. Use strong, unique passwords for better security")
 
 	// Return the derived key in base64 format
 	return base64.StdEncoding.EncodeToString(derivedKey), steps, nil
+}
+
+// isCommonPassword checks if the password matches common patterns
+func isCommonPassword(password string) bool {
+	// Convert to lowercase for case-insensitive comparison
+	lowerPass := strings.ToLower(password)
+
+	// List of common passwords and patterns
+	commonPasswords := []string{
+		"password", "123456", "qwerty", "admin", "welcome",
+		"letmein", "monkey", "dragon", "baseball", "football",
+		"abc123", "111111", "123123", "12345678", "123456789",
+		"1234567890", "qwerty123", "password123", "admin123",
+	}
+
+	// Check against common passwords
+	for _, common := range commonPasswords {
+		if lowerPass == common {
+			return true
+		}
+	}
+
+	// Check for sequential numbers
+	if matched, _ := regexp.MatchString(`^[0-9]+$`, password); matched {
+		return true
+	}
+
+	// Check for repeated characters
+	if matched, _ := regexp.MatchString(`(.)\1{2,}`, password); matched {
+		return true
+	}
+
+	return false
 }
