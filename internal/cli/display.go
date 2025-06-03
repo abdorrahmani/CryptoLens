@@ -2,9 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"github.com/olekukonko/tablewriter"
 )
 
 // ConsoleDisplay implements DisplayHandler for console output
@@ -39,22 +41,93 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 	fmt.Printf("%s\n", d.theme.Format(result, "brightGreen"))
 
 	fmt.Printf("\n%s\n", d.theme.Format("Processing Steps:", "bold brightCyan"))
-	for i, step := range steps {
-		if strings.HasPrefix(step, "Note:") {
-			fmt.Printf("%s\n", d.theme.Format(step, "dim"))
-		} else if strings.HasPrefix(step, "How") || strings.HasPrefix(step, "Security") {
-			fmt.Printf("\n%s\n", d.theme.Format(step, "bold"))
-		} else if strings.Contains(step, "->") {
-			fmt.Printf("%s\n", d.theme.Format(step, "brightYellow"))
-		} else if strings.HasPrefix(step, "Character") {
-			fmt.Printf("%s\n", d.theme.Format(step, "brightPurple"))
-		} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
-			fmt.Printf("%s\n", d.theme.Format(step, "brightBlue"))
-		} else {
-			fmt.Printf("%s\n", d.theme.Format(fmt.Sprintf("%d. %s", i+1, step), "yellow"))
+
+	// Create sections
+	sections := map[string][]string{
+		"📌 Introduction":      make([]string, 0),
+		"🔢 Implementation":    make([]string, 0),
+		"🔍 Technical Details": make([]string, 0),
+		"📈 Security":          make([]string, 0),
+		"⚠️ Caveats":          make([]string, 0),
+	}
+
+	// Categorize steps into sections
+	currentSection := "📌 Introduction"
+	for _, step := range steps {
+		// Introduction section
+		if strings.HasPrefix(step, "Note:") && !strings.Contains(step, "Security") && !strings.Contains(step, "Warning") {
+			currentSection = "📌 Introduction"
+		}
+		// Implementation section
+		if strings.HasPrefix(step, "How") ||
+			strings.HasPrefix(step, "1.") ||
+			strings.HasPrefix(step, "2.") ||
+			strings.HasPrefix(step, "3.") ||
+			strings.HasPrefix(step, "4.") ||
+			strings.HasPrefix(step, "5.") ||
+			strings.HasPrefix(step, "6.") {
+			currentSection = "🔢 Implementation"
+		}
+		// Technical Details section
+		if strings.HasPrefix(step, "Technical") ||
+			strings.HasPrefix(step, "ASCII") ||
+			strings.HasPrefix(step, "Binary") ||
+			strings.HasPrefix(step, "Character") ||
+			strings.HasPrefix(step, "Block") ||
+			strings.HasPrefix(step, "Key") ||
+			strings.HasPrefix(step, "Padding") ||
+			strings.HasPrefix(step, "Algorithm") {
+			currentSection = "🔍 Technical Details"
+		}
+		// Security section
+		if strings.HasPrefix(step, "Security") ||
+			strings.Contains(step, "authentication") ||
+			strings.Contains(step, "integrity") ||
+			strings.Contains(step, "resistant") ||
+			strings.Contains(step, "secure") {
+			currentSection = "📈 Security"
+		}
+		// Caveats section
+		if strings.Contains(step, "vulnerable") ||
+			strings.Contains(step, "warning") ||
+			strings.Contains(step, "not secure") ||
+			strings.Contains(step, "broken") ||
+			strings.Contains(step, "⚠️") {
+			currentSection = "⚠️ Caveats"
+		}
+		// Keep current section for other steps
+		sections[currentSection] = append(sections[currentSection], step)
+	}
+
+	// Display each section with a header and separator
+	for section, sectionSteps := range sections {
+		if len(sectionSteps) > 0 {
+			fmt.Printf("\n%s\n", d.theme.Format(section, "bold"))
+			fmt.Printf("%s\n", d.theme.Format(strings.Repeat("=", len(section)), "dim"))
+			for _, step := range sectionSteps {
+				if strings.HasPrefix(step, "Note:") {
+					fmt.Printf("%s\n", d.theme.Format(step, "dim"))
+				} else if strings.Contains(step, "->") {
+					fmt.Printf("%s\n", d.theme.Format(step, "brightYellow"))
+				} else if strings.HasPrefix(step, "Character") {
+					fmt.Printf("%s\n", d.theme.Format(step, "brightPurple"))
+				} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
+					fmt.Printf("%s\n", d.theme.Format(step, "brightBlue"))
+				} else {
+					fmt.Printf("%s\n", step)
+				}
+			}
+			fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
 		}
 	}
-	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
+
+	// Add tablewriter table for steps
+	table := tablewriter.NewWriter(os.Stdout)
+	table.Header([]string{"#", "Step"})
+	for i, step := range steps {
+		table.Append([]string{fmt.Sprintf("%d", i+1), step})
+	}
+	table.Render()
 }
 
 // ShowError displays an error message
