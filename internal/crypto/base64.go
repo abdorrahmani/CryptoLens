@@ -24,6 +24,11 @@ func (p *Base64Processor) Configure(config map[string]interface{}) error {
 func (p *Base64Processor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
+	// Validate operation type
+	if operation != OperationEncrypt && operation != OperationDecrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s", operation)
+	}
+
 	// Add introduction
 	v.AddStep("Base64 Encoding/Decoding Process")
 	v.AddStep("=============================")

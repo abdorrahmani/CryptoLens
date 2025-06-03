@@ -140,6 +140,11 @@ func (p *HMACProcessor) getOutputSize() int {
 }
 
 func (p *HMACProcessor) Process(text string, operation string) (string, []string, error) {
+	// Validate operation type
+	if operation != OperationEncrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s (HMAC only supports encryption)", operation)
+	}
+
 	v := utils.NewVisualizer()
 
 	// Add introduction

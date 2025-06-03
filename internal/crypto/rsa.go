@@ -136,6 +136,11 @@ func (p *RSAProcessor) loadKeys(publicKeyFile, privateKeyFile string) error {
 
 // Process handles RSA encryption/decryption
 func (p *RSAProcessor) Process(text string, operation string) (string, []string, error) {
+	// Validate operation type
+	if operation != OperationEncrypt && operation != OperationDecrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s (must be 'encrypt' or 'decrypt')", operation)
+	}
+
 	v := utils.NewVisualizer()
 
 	// Add introduction

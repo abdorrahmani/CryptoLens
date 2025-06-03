@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
@@ -35,6 +34,11 @@ func (p *CaesarProcessor) Configure(config map[string]interface{}) error {
 func (p *CaesarProcessor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
+	// Validate operation type
+	if operation != OperationEncrypt && operation != OperationDecrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s", operation)
+	}
+
 	// Add introduction
 	v.AddStep("Caesar Cipher Process")
 	v.AddStep("=============================")
@@ -48,31 +52,33 @@ func (p *CaesarProcessor) Process(text string, operation string) (string, []stri
 	v.AddStep("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25")
 	v.AddSeparator()
 
-	// Convert to uppercase for consistency
-	text = strings.ToUpper(text)
-
 	// Process each character
 	result := make([]rune, len(text))
 	for i, char := range text {
-		if char >= 'A' && char <= 'Z' {
-			// Calculate new position
-			pos := int(char - 'A')
+		if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') {
+			var base rune
+			if char >= 'a' && char <= 'z' {
+				base = 'a'
+			} else {
+				base = 'A'
+			}
+			pos := int(char - base)
 			if operation == OperationDecrypt {
 				pos = (pos - p.shift + 26) % 26
 			} else {
 				pos = (pos + p.shift) % 26
 			}
-			result[i] = rune('A' + pos)
+			result[i] = rune(int(base) + pos)
 
 			// Show character transformation
 			v.AddStep(fmt.Sprintf("Character '%c':", char))
-			v.AddStep(fmt.Sprintf("  Position: %d", int(char-'A')))
+			v.AddStep(fmt.Sprintf("  Position: %d", int(char-base)))
 			if operation == OperationDecrypt {
 				v.AddStep(fmt.Sprintf("  Shift: -%d", p.shift))
-				v.AddStep(fmt.Sprintf("  New Position: (%d - %d + 26) %% 26 = %d", int(char-'A'), p.shift, pos))
+				v.AddStep(fmt.Sprintf("  New Position: (%d - %d + 26) %% 26 = %d", int(char-base), p.shift, pos))
 			} else {
 				v.AddStep(fmt.Sprintf("  Shift: +%d", p.shift))
-				v.AddStep(fmt.Sprintf("  New Position: (%d + %d) %% 26 = %d", int(char-'A'), p.shift, pos))
+				v.AddStep(fmt.Sprintf("  New Position: (%d + %d) %% 26 = %d", int(char-base), p.shift, pos))
 			}
 			v.AddStep(fmt.Sprintf("  Result: '%c'", result[i]))
 			v.AddArrow()

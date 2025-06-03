@@ -56,6 +56,16 @@ func (p *AESProcessor) Configure(config map[string]interface{}) error {
 func (p *AESProcessor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
+	// Check for empty input
+	if text == "" {
+		return "", nil, fmt.Errorf("empty input")
+	}
+
+	// Validate operation type
+	if operation != OperationEncrypt && operation != OperationDecrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s", operation)
+	}
+
 	// Add introduction
 	v.AddStep("AES Encryption Process")
 	v.AddStep("=============================")
