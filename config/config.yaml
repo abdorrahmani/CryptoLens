@@ -32,6 +32,18 @@ hmac:
     - "blake2b-512"
     - "blake3"
 
+# PBKDF Settings
+pbkdf:
+  algorithm: "argon2id"  # Algorithm to use (pbkdf2, argon2id, scrypt)
+  iterations: 3  # Number of iterations (for Argon2id, this is the time parameter)
+  memory: 65536  # Memory usage in KB (for Argon2id, minimum 8KB)
+  threads: 4  # Number of threads (for Argon2id, minimum 1)
+  keyLength: 32  # Key length in bytes
+  availableAlgorithms:  # List of available algorithms
+    - "pbkdf2"
+    - "argon2id"
+    - "scrypt"
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)

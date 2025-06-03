@@ -28,8 +28,9 @@ func (d *ConsoleDisplay) ShowMenu() {
 	fmt.Printf("%s\n", d.theme.Format("4. SHA-256 Hashing", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("5. RSA Encryption", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("6. HMAC Authentication", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("7. Exit", "yellow"))
-	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-7): ", "green"))
+	fmt.Printf("%s\n", d.theme.Format("7. Password-Based Key Derivation", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("8. Exit", "yellow"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-8): ", "green"))
 }
 
 // ShowResult displays the processing result and steps

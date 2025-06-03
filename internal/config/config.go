@@ -15,6 +15,7 @@ type ConfigProvider interface {
 	GetCaesarConfig() CaesarConfig
 	GetRSAConfig() RSAConfig
 	GetHMACConfig() HMACConfig
+	GetPBKDFConfig() PBKDFConfig
 	GetGeneralConfig() GeneralConfig
 	Save(path string) error
 }
@@ -49,6 +50,16 @@ type HMACConfig struct {
 	HashAlgorithm string `yaml:"hashAlgorithm"`
 }
 
+// PBKDFConfig represents PBKDF-specific configuration
+type PBKDFConfig struct {
+	Algorithm           string   `yaml:"algorithm"`
+	Iterations          int      `yaml:"iterations"`
+	Memory              uint32   `yaml:"memory"`
+	Threads             uint8    `yaml:"threads"`
+	KeyLength           uint32   `yaml:"keyLength"`
+	AvailableAlgorithms []string `yaml:"availableAlgorithms"`
+}
+
 // GeneralConfig represents general application settings
 type GeneralConfig struct {
 	LogLevel string `yaml:"logLevel"`
@@ -62,6 +73,7 @@ type Config struct {
 	Caesar  CaesarConfig  `yaml:"caesar"`
 	RSA     RSAConfig     `yaml:"rsa"`
 	HMAC    HMACConfig    `yaml:"hmac"`
+	PBKDF   PBKDFConfig   `yaml:"pbkdf"`
 	General GeneralConfig `yaml:"general"`
 }
 
@@ -88,6 +100,11 @@ func (c *Config) GetRSAConfig() RSAConfig {
 // GetHMACConfig returns the HMAC configuration
 func (c *Config) GetHMACConfig() HMACConfig {
 	return c.HMAC
+}
+
+// GetPBKDFConfig returns the PBKDF configuration
+func (c *Config) GetPBKDFConfig() PBKDFConfig {
+	return c.PBKDF
 }
 
 // GetGeneralConfig returns the general configuration
@@ -224,6 +241,14 @@ func createDefaultConfig() *Config {
 	config.HMAC.KeySize = 256
 	config.HMAC.KeyFile = filepath.Join(keysDir, "hmac_key.bin")
 	config.HMAC.HashAlgorithm = "sha256"
+
+	// Set PBKDF defaults
+	config.PBKDF.Algorithm = "argon2id"
+	config.PBKDF.Iterations = 100000
+	config.PBKDF.Memory = 65536
+	config.PBKDF.Threads = 4
+	config.PBKDF.KeyLength = 32
+	config.PBKDF.AvailableAlgorithms = []string{"pbkdf2", "argon2id", "scrypt"}
 
 	// Set General defaults
 	config.General.LogLevel = "info"

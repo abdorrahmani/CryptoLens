@@ -32,6 +32,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(4, createSHA256Processor)
 	factory.RegisterProcessor(5, createRSAProcessor)
 	factory.RegisterProcessor(6, createHMACProcessor)
+	factory.RegisterProcessor(7, createPBKDFProcessor)
 
 	return factory
 }
@@ -131,6 +132,23 @@ func createHMACProcessor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure HMAC processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createPBKDFProcessor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewPBKDFProcessor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"algorithm":  cfg.GetPBKDFConfig().Algorithm,
+			"iterations": cfg.GetPBKDFConfig().Iterations,
+			"memory":     cfg.GetPBKDFConfig().Memory,
+			"threads":    cfg.GetPBKDFConfig().Threads,
+			"keyLength":  cfg.GetPBKDFConfig().KeyLength,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure PBKDF processor: %w", err)
 		}
 	}
 	return processor, nil
