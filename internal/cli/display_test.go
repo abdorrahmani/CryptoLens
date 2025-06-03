@@ -23,7 +23,12 @@ func TestConsoleDisplay(t *testing.T) {
 		outputCh := make(chan string)
 		go func() {
 			var buf strings.Builder
-			io.Copy(&buf, r)
+			_, err := io.Copy(&buf, r)
+			if err != nil {
+				t.Errorf("Failed to copy output: %v", err)
+				outputCh <- ""
+				return
+			}
 			outputCh <- buf.String()
 		}()
 

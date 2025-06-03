@@ -83,7 +83,9 @@ func TestGetIntInput(t *testing.T) {
 			oldStdin := os.Stdin
 			r, w, _ := os.Pipe()
 			os.Stdin = r
-			w.WriteString(tt.input)
+			if _, err := w.WriteString(tt.input); err != nil {
+				t.Errorf("Failed to write test input: %v", err)
+			}
 			w.Close()
 
 			result := GetIntInput("Enter a number: ", tt.min, tt.max)
@@ -122,7 +124,9 @@ func TestGetTextInput(t *testing.T) {
 			oldStdin := os.Stdin
 			r, w, _ := os.Pipe()
 			os.Stdin = r
-			w.WriteString(tt.input)
+			if _, err := w.WriteString(tt.input); err != nil {
+				t.Errorf("Failed to write test input: %v", err)
+			}
 			w.Close()
 
 			result := GetTextInput(tt.defaultValue)
