@@ -3,103 +3,109 @@ package crypto
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
-type CaesarCipherProcessor struct {
+type CaesarProcessor struct {
 	BaseConfigurableProcessor
 	shift int
 }
 
-func NewCaesarCipherProcessor() *CaesarCipherProcessor {
-	return &CaesarCipherProcessor{
-		shift: 3, // Classic Caesar shift of 3
+func NewCaesarProcessor() *CaesarProcessor {
+	return &CaesarProcessor{
+		shift: 3, // Default shift
 	}
 }
 
 // Configure implements the ConfigurableProcessor interface
-func (p *CaesarCipherProcessor) Configure(config map[string]interface{}) error {
+func (p *CaesarProcessor) Configure(config map[string]interface{}) error {
 	if err := p.BaseConfigurableProcessor.Configure(config); err != nil {
 		return err
 	}
 
-	// Configure shift value if provided
+	// Configure shift if provided
 	if shift, ok := config["shift"].(int); ok {
-		if shift < 0 || shift > 25 {
-			return fmt.Errorf("shift value must be between 0 and 25")
-		}
 		p.shift = shift
 	}
 
 	return nil
 }
 
-func (p *CaesarCipherProcessor) Process(text string, operation string) (string, []string, error) {
+func (p *CaesarProcessor) Process(text string, operation string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
 	// Add introduction
-	v.AddStep(fmt.Sprintf("Caesar Cipher %s Process", cases.Title(language.English).String(operation)))
+	v.AddStep("Caesar Cipher Process")
 	v.AddStep("=============================")
-	v.AddNote("Caesar Cipher is one of the oldest known encryption methods")
-	v.AddNote(fmt.Sprintf("Using shift value: %d", p.shift))
+	v.AddNote("Caesar cipher is a substitution cipher")
+	v.AddNote(fmt.Sprintf("Using shift value of %d", p.shift))
 	v.AddSeparator()
 
-	// Show original text
-	v.AddTextStep("Original Text", text)
-	v.AddArrow()
+	// Show alphabet
+	v.AddStep("Alphabet:")
+	v.AddStep("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z")
+	v.AddStep("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25")
+	v.AddSeparator()
+
+	// Convert to uppercase for consistency
+	text = strings.ToUpper(text)
 
 	// Process each character
-	var result strings.Builder
-	shift := p.shift
-	if operation == OperationDecrypt {
-		shift = 26 - p.shift // Reverse the shift for decryption
-	}
-
+	result := make([]rune, len(text))
 	for i, char := range text {
-		if unicode.IsLetter(char) {
-			base := 'a'
-			if unicode.IsUpper(char) {
-				base = 'A'
+		if char >= 'A' && char <= 'Z' {
+			// Calculate new position
+			pos := int(char - 'A')
+			if operation == OperationDecrypt {
+				pos = (pos - p.shift + 26) % 26
+			} else {
+				pos = (pos + p.shift) % 26
 			}
-			shifted := (int(char)-int(base)+shift)%26 + int(base)
-			result.WriteRune(rune(shifted))
+			result[i] = rune('A' + pos)
 
-			// Show the transformation
-			v.AddStep(fmt.Sprintf("Character %d: '%c'", i+1, char))
-			v.AddStep(fmt.Sprintf("  ASCII value: %d", char))
-			v.AddStep(fmt.Sprintf("  Shifted by: %d", shift))
-			v.AddStep(fmt.Sprintf("  New value: %d", shifted))
-			v.AddStep(fmt.Sprintf("  Result: '%c'", rune(shifted)))
+			// Show character transformation
+			v.AddStep(fmt.Sprintf("Character '%c':", char))
+			v.AddStep(fmt.Sprintf("  Position: %d", int(char-'A')))
+			if operation == OperationDecrypt {
+				v.AddStep(fmt.Sprintf("  Shift: -%d", p.shift))
+				v.AddStep(fmt.Sprintf("  New Position: (%d - %d + 26) %% 26 = %d", int(char-'A'), p.shift, pos))
+			} else {
+				v.AddStep(fmt.Sprintf("  Shift: +%d", p.shift))
+				v.AddStep(fmt.Sprintf("  New Position: (%d + %d) %% 26 = %d", int(char-'A'), p.shift, pos))
+			}
+			v.AddStep(fmt.Sprintf("  Result: '%c'", result[i]))
 			v.AddArrow()
 		} else {
-			result.WriteRune(char)
-			v.AddStep(fmt.Sprintf("Character %d: '%c' (not a letter - kept unchanged)", i+1, char))
+			result[i] = char
+			v.AddStep(fmt.Sprintf("Non-alphabetic character '%c' - unchanged", char))
 			v.AddArrow()
 		}
 	}
 
-	// Show final result
-	v.AddTextStep(fmt.Sprintf("%sed Text", cases.Title(language.English).String(operation)), result.String())
+	// Show the result
+	if operation == OperationDecrypt {
+		v.AddTextStep("Decrypted Text", string(result))
+	} else {
+		v.AddTextStep("Encrypted Text", string(result))
+	}
 
-	// Show the alphabet and shift
+	// Add how it works
 	v.AddSeparator()
-	v.AddStep("Alphabet Shift:")
-	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	shifted := alphabet[shift:] + alphabet[:shift]
-	v.AddStep(fmt.Sprintf("Original: %s", alphabet))
-	v.AddStep(fmt.Sprintf("Shifted:  %s", shifted))
+	v.AddStep("How Caesar Cipher Works:")
+	v.AddStep("1. Each letter is shifted by a fixed number of positions")
+	v.AddStep("2. The shift wraps around the alphabet (Z → A)")
+	v.AddStep("3. Non-alphabetic characters remain unchanged")
+	v.AddStep("4. The same shift value is used for all letters")
+	v.AddNote("Caesar cipher is a simple substitution cipher - it's not secure for real-world use")
 
 	// Add security notes
 	v.AddSeparator()
 	v.AddNote("Security Considerations:")
-	v.AddNote("1. Caesar Cipher is a simple substitution cipher")
-	v.AddNote("2. Only 25 possible keys (shifts)")
-	v.AddNote("3. Vulnerable to frequency analysis")
-	v.AddNote("4. Not suitable for modern security needs")
+	v.AddNote("1. Only 25 possible keys (shifts)")
+	v.AddNote("2. Vulnerable to frequency analysis")
+	v.AddNote("3. No key management - same shift for all messages")
+	v.AddNote("4. Can be broken by brute force (trying all 25 shifts)")
 
-	return result.String(), v.GetSteps(), nil
+	return string(result), v.GetSteps(), nil
 }

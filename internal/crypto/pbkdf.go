@@ -5,44 +5,28 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"math"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
+
+	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
 // PBKDFProcessor implements password-based key derivation
 type PBKDFProcessor struct {
 	BaseConfigurableProcessor
-	algorithm  string
+	keyManager KeyManager
 	iterations int
-	memory     uint32
-	threads    uint8
-	keyLength  uint32
-	salt       []byte
+	saltSize   int
 }
 
 // NewPBKDFProcessor creates a new PBKDF processor
 func NewPBKDFProcessor() *PBKDFProcessor {
-	// Generate initial salt
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		// If we can't generate salt, use a default one
-		salt = []byte("default_salt_123")
-	}
-
 	return &PBKDFProcessor{
-		algorithm:  "pbkdf2",
-		iterations: 100000,
-		memory:     64 * 1024, // 64MB
-		threads:    4,
-		keyLength:  32, // 256 bits
-		salt:       salt,
+		iterations: 100000, // Default iterations
+		saltSize:   16,     // Default salt size
 	}
 }
 
@@ -52,244 +36,106 @@ func (p *PBKDFProcessor) Configure(config map[string]interface{}) error {
 		return err
 	}
 
-	// Set default values first
-	p.iterations = 100000
-	p.memory = 64 * 1024
-	p.threads = 4
-	p.keyLength = 32
-
-	// Override with config values if provided
-	if algo, ok := config["algorithm"].(string); ok {
-		p.algorithm = algo
-	}
-	if iter, ok := config["iterations"].(int); ok && iter > 0 {
+	// Configure iterations if provided
+	if iter, ok := config["iterations"].(int); ok {
 		p.iterations = iter
 	}
-	if mem, ok := config["memory"].(uint32); ok && mem > 0 {
-		p.memory = mem
-	}
-	if thr, ok := config["threads"].(uint8); ok && thr > 0 {
-		p.threads = thr
-	}
-	if keyLen, ok := config["keyLength"].(uint32); ok && keyLen > 0 {
-		p.keyLength = keyLen
+
+	// Configure salt size if provided
+	if size, ok := config["saltSize"].(int); ok {
+		p.saltSize = size
 	}
 
-	// Generate new salt for each operation
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		return fmt.Errorf("failed to generate salt: %w", err)
+	// Configure key file if provided
+	keyFile := "pbkdf_key.bin"
+	if kf, ok := config["keyFile"].(string); ok {
+		keyFile = kf
 	}
-	p.salt = salt
+
+	// Initialize key manager
+	p.keyManager = NewFileKeyManager(256, keyFile) // PBKDF2-SHA256 uses 256-bit keys
+	if err := p.keyManager.LoadOrGenerateKey(); err != nil {
+		return fmt.Errorf("failed to load/generate key: %w", err)
+	}
 
 	return nil
 }
 
 // Process handles password-based key derivation
-func (p *PBKDFProcessor) Process(password string, operation string) (string, []string, error) {
-	if operation == OperationDecrypt {
-		return "", nil, fmt.Errorf("key derivation is a one-way process and cannot be reversed")
-	}
+func (p *PBKDFProcessor) Process(text string, operation string) (string, []string, error) {
+	v := utils.NewVisualizer()
 
-	// Validate input
-	if len(password) == 0 {
-		return "", nil, fmt.Errorf("password cannot be empty")
-	}
+	// Add introduction
+	v.AddStep("PBKDF2-SHA256 Process")
+	v.AddStep("=============================")
+	v.AddNote("PBKDF2 (Password-Based Key Derivation Function 2) is used for key stretching")
+	v.AddNote("Using SHA-256 as the underlying hash function")
+	v.AddSeparator()
 
 	// Add password strength warnings
-	steps := []string{
-		fmt.Sprintf("Using %s for key derivation", p.algorithm),
-	}
+	v.AddStep("Using PBKDF2-SHA256 for key derivation")
 
 	// Password strength analysis
-	if len(password) < 8 {
-		steps = append(steps, "⚠️  Warning: Password is too short (less than 8 characters)")
-		steps = append(steps, "    This makes it more vulnerable to brute-force attacks")
-		steps = append(steps, "    Recommendation: Use at least 12 characters")
-	} else if len(password) < 12 {
-		steps = append(steps, "⚠️  Warning: Password could be stronger")
-		steps = append(steps, "    Recommendation: Use at least 12 characters")
+	if len(text) < 8 {
+		v.AddStep("⚠️  Warning: Password is too short (less than 8 characters)")
+		v.AddStep("    This makes it more vulnerable to brute-force attacks")
+		v.AddStep("    Recommendation: Use at least 12 characters")
+	} else if len(text) < 12 {
+		v.AddStep("⚠️  Warning: Password could be stronger")
+		v.AddStep("    Recommendation: Use at least 12 characters")
 	}
 
 	// Check for common patterns
-	if isCommonPassword(password) {
-		steps = append(steps, "⚠️  Warning: This appears to be a common password pattern")
-		steps = append(steps, "    Recommendation: Use a more unique password")
+	if isCommonPassword(text) {
+		v.AddStep("⚠️  Warning: This appears to be a common password pattern")
+		v.AddStep("    Recommendation: Use a more unique password")
 	}
 
-	// Ensure salt is initialized
-	if p.salt == nil || len(p.salt) == 0 {
-		salt := make([]byte, 16)
-		if _, err := rand.Read(salt); err != nil {
-			return "", nil, fmt.Errorf("failed to generate salt: %w", err)
-		}
-		p.salt = salt
+	// Generate salt
+	salt := make([]byte, p.saltSize)
+	if _, err := rand.Read(salt); err != nil {
+		return "", nil, fmt.Errorf("failed to generate salt: %w", err)
 	}
 
-	steps = append(steps, fmt.Sprintf("Salt (base64): %s", base64.StdEncoding.EncodeToString(p.salt)))
+	// Measure execution time
+	start := time.Now()
+	derivedKey := pbkdf2.Key([]byte(text), salt, p.iterations, 32, sha256.New)
+	duration := time.Since(start)
 
-	var derivedKey []byte
-	var err error
+	// Show process details
+	v.AddStep(fmt.Sprintf("Generated salt (%d bytes)", p.saltSize))
+	v.AddStep(fmt.Sprintf("Performed %d iterations", p.iterations))
+	v.AddStep(fmt.Sprintf("Derived key in %v", duration))
+	v.AddStep("Base64 encoded the result for safe transmission")
+	v.AddNote("PBKDF2 is designed to be computationally intensive to prevent brute-force attacks")
 
-	// Check if we're in benchmark mode
-	isBenchmark := operation == "benchmark"
-
-	switch p.algorithm {
-	case "pbkdf2":
-		// Ensure minimum iterations
-		iterations := p.iterations
-		if iterations < 1000 {
-			iterations = 1000
-		}
-		derivedKey = pbkdf2.Key([]byte(password), p.salt, iterations, int(p.keyLength), sha256.New)
-		steps = append(steps, fmt.Sprintf("PBKDF2 Parameters:"))
-		steps = append(steps, fmt.Sprintf("- Iterations: %d", iterations))
-		steps = append(steps, fmt.Sprintf("- Key Length: %d bits", p.keyLength*8))
-		steps = append(steps, fmt.Sprintf("- Hash Function: SHA-256"))
-
-	case "argon2id":
-		// Use more reasonable parameters for interactive use
-		iterations := uint32(3)     // Reduced from default for faster response
-		threads := uint8(4)         // Use all available CPU cores
-		memory := uint32(64 * 1024) // 64MB
-		keyLength := uint32(32)     // 256 bits
-
-		if !isBenchmark {
-			fmt.Print("\nDeriving key with Argon2id (this may take a few seconds)...\n")
-			fmt.Print("Progress: [")
-			progress := 0
-			for i := 0; i < 50; i++ {
-				fmt.Print(" ")
-			}
-			fmt.Print("] 0%")
-			os.Stdout.Sync()
-
-			// Start a goroutine to update progress
-			done := make(chan bool)
-			go func() {
-				for i := 0; i < 100; i++ {
-					select {
-					case <-done:
-						return
-					default:
-						time.Sleep(50 * time.Millisecond)
-						fmt.Printf("\rProgress: [")
-						progress = i
-						for j := 0; j < 50; j++ {
-							if j < progress/2 {
-								fmt.Print("=")
-							} else {
-								fmt.Print(" ")
-							}
-						}
-						fmt.Printf("] %d%%", progress)
-						os.Stdout.Sync()
-					}
-				}
-			}()
-
-			derivedKey = argon2.IDKey([]byte(password), p.salt, iterations, memory, threads, keyLength)
-			done <- true
-			fmt.Print("\rProgress: [")
-			for i := 0; i < 50; i++ {
-				fmt.Print("=")
-			}
-			fmt.Println("] 100%")
-		} else {
-			derivedKey = argon2.IDKey([]byte(password), p.salt, iterations, memory, threads, keyLength)
-		}
-
-		steps = append(steps, fmt.Sprintf("Argon2id Parameters:"))
-		steps = append(steps, fmt.Sprintf("- Iterations: %d", iterations))
-		steps = append(steps, fmt.Sprintf("- Memory: %d KB", memory/1024))
-		steps = append(steps, fmt.Sprintf("- Threads: %d", threads))
-		steps = append(steps, fmt.Sprintf("- Key Length: %d bits", keyLength*8))
-
-	case "scrypt":
-		// Ensure minimum iterations and power of 2 for Scrypt
-		iterations := p.iterations
-		if iterations < 2 {
-			iterations = 2
-		}
-		// Find the next power of 2
-		iterations = 1 << uint(math.Log2(float64(iterations))+1)
-		if iterations < 2 {
-			iterations = 2
-		}
-
-		if !isBenchmark {
-			fmt.Print("\nDeriving key with Scrypt (this may take a few seconds)...\n")
-			fmt.Print("Progress: [")
-			progress := 0
-			for i := 0; i < 50; i++ {
-				fmt.Print(" ")
-			}
-			fmt.Print("] 0%")
-			os.Stdout.Sync()
-
-			// Start a goroutine to update progress
-			done := make(chan bool)
-			go func() {
-				for i := 0; i < 100; i++ {
-					select {
-					case <-done:
-						return
-					default:
-						time.Sleep(50 * time.Millisecond)
-						fmt.Printf("\rProgress: [")
-						progress = i
-						for j := 0; j < 50; j++ {
-							if j < progress/2 {
-								fmt.Print("=")
-							} else {
-								fmt.Print(" ")
-							}
-						}
-						fmt.Printf("] %d%%", progress)
-						os.Stdout.Sync()
-					}
-				}
-			}()
-
-			derivedKey, err = scrypt.Key([]byte(password), p.salt, iterations, 8, 1, int(p.keyLength))
-			if err != nil {
-				done <- true
-				return "", nil, fmt.Errorf("failed to derive key using scrypt: %w", err)
-			}
-
-			done <- true
-			fmt.Print("\rProgress: [")
-			for i := 0; i < 50; i++ {
-				fmt.Print("=")
-			}
-			fmt.Println("] 100%")
-		} else {
-			derivedKey, err = scrypt.Key([]byte(password), p.salt, iterations, 8, 1, int(p.keyLength))
-			if err != nil {
-				return "", nil, fmt.Errorf("failed to derive key using scrypt: %w", err)
-			}
-		}
-
-		steps = append(steps, fmt.Sprintf("Scrypt Parameters:"))
-		steps = append(steps, fmt.Sprintf("- N (CPU/Memory cost): %d (2^%d)", iterations, int(math.Log2(float64(iterations)))))
-		steps = append(steps, fmt.Sprintf("- r (Block size): 8"))
-		steps = append(steps, fmt.Sprintf("- p (Parallelization): 1"))
-		steps = append(steps, fmt.Sprintf("- Key Length: %d bits", p.keyLength*8))
-
-	default:
-		return "", nil, fmt.Errorf("unsupported algorithm: %s", p.algorithm)
-	}
+	// Add how it works
+	v.AddSeparator()
+	v.AddStep("How PBKDF2 Works:")
+	v.AddStep("1. Password and Salt:")
+	v.AddStep("   - Password is the input text")
+	v.AddStep("   - Salt is a random value to prevent rainbow table attacks")
+	v.AddStep("2. Iterations:")
+	v.AddStep(fmt.Sprintf("   - Performs %d iterations of SHA-256", p.iterations))
+	v.AddStep("   - Each iteration makes brute-force attacks more expensive")
+	v.AddStep("3. Key Derivation:")
+	v.AddStep("   - Combines password, salt, and iteration count")
+	v.AddStep("   - Produces a 256-bit (32-byte) key")
+	v.AddStep("4. Output:")
+	v.AddStep("   - The derived key is base64 encoded for safe transmission")
 
 	// Add security notes
-	steps = append(steps, "\nSecurity Considerations:")
-	steps = append(steps, "1. Salt is randomly generated for each operation")
-	steps = append(steps, "2. Parameters are chosen for security and performance balance")
-	steps = append(steps, "3. Key derivation is a one-way process")
-	steps = append(steps, "4. Never store the original password")
-	steps = append(steps, "5. Use strong, unique passwords for better security")
+	v.AddSeparator()
+	v.AddNote("Security Considerations:")
+	v.AddNote("1. The salt must be unique for each password")
+	v.AddNote("2. More iterations make the process slower but more secure")
+	v.AddNote("3. The derived key should be used as input to other cryptographic operations")
+	v.AddNote("4. Never store the original password, only the derived key and salt")
+	v.AddNote("5. The salt can be stored alongside the derived key")
 
-	// Return the derived key in base64 format
-	return base64.StdEncoding.EncodeToString(derivedKey), steps, nil
+	// Base64 encode the result
+	encoded := base64.StdEncoding.EncodeToString(derivedKey)
+	return encoded, v.GetSteps(), nil
 }
 
 // isCommonPassword checks if the password matches common patterns

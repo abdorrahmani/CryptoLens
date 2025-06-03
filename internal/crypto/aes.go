@@ -6,20 +6,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"os"
+
+	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
 type AESProcessor struct {
 	BaseConfigurableProcessor
-	key     []byte
-	keySize int
-	keyFile string
+	keyManager KeyManager
+	keySize    int
 }
 
 func NewAESProcessor() *AESProcessor {
 	return &AESProcessor{
 		keySize: 256, // Default to AES-256
-		keyFile: "aes_key.bin",
 	}
 }
 
@@ -40,66 +39,59 @@ func (p *AESProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	// Configure key file if provided
-	if keyFile, ok := config["keyFile"].(string); ok {
-		p.keyFile = keyFile
+	keyFile := "aes_key.bin"
+	if kf, ok := config["keyFile"].(string); ok {
+		keyFile = kf
 	}
 
-	// Load or generate key
-	if err := p.loadOrGenerateKey(); err != nil {
+	// Initialize key manager
+	p.keyManager = NewFileKeyManager(p.keySize, keyFile)
+	if err := p.keyManager.LoadOrGenerateKey(); err != nil {
 		return fmt.Errorf("failed to load/generate key: %w", err)
 	}
 
 	return nil
 }
 
-func (p *AESProcessor) loadOrGenerateKey() error {
-	// Try to load existing key
-	if key, err := os.ReadFile(p.keyFile); err == nil {
-		if len(key) == p.keySize/8 {
-			p.key = key
-			return nil
-		}
-	}
-
-	// Generate new key
-	key := make([]byte, p.keySize/8)
-	if _, err := rand.Read(key); err != nil {
-		return fmt.Errorf("failed to generate key: %w", err)
-	}
-
-	// Save key to file
-	if err := os.WriteFile(p.keyFile, key, 0600); err != nil {
-		return fmt.Errorf("failed to save key: %w", err)
-	}
-
-	p.key = key
-	return nil
-}
-
 func (p *AESProcessor) Process(text string, operation string) (string, []string, error) {
-	steps := []string{
-		"AES (Advanced Encryption Standard) is a symmetric encryption algorithm.",
-		"It uses the same key for both encryption and decryption.",
-		fmt.Sprintf("This implementation uses AES-%d in CBC mode with PKCS7 padding.", p.keySize),
-		"The process involves:",
-		"1. Generating a random initialization vector (IV)",
-		"2. Padding the data to match the block size",
-		"3. Encrypting the data using the key and IV",
-		"4. Combining the IV and encrypted data",
-	}
+	v := utils.NewVisualizer()
 
-	// Create cipher block
-	block, err := aes.NewCipher(p.key)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create cipher: %v", err)
-	}
+	// Add introduction
+	v.AddStep("AES Encryption Process")
+	v.AddStep("=============================")
+	v.AddNote("AES (Advanced Encryption Standard) is a symmetric encryption algorithm")
+	v.AddNote(fmt.Sprintf("Using AES-%d in CBC mode with PKCS7 padding", p.keySize))
+	v.AddSeparator()
+
+	// Show key information
+	v.AddStep("Key Information:")
+	v.AddStep(fmt.Sprintf("Key Size: %d bits", p.keySize))
+	v.AddStep(fmt.Sprintf("Block Size: %d bits", aes.BlockSize*8))
+	v.AddStep("Mode: CBC (Cipher Block Chaining)")
+	v.AddStep("Padding: PKCS7")
+	v.AddSeparator()
 
 	if operation == OperationDecrypt {
+		// Add decryption steps
+		v.AddStep("Decryption Process:")
+		v.AddStep("1. Base64 decode the input")
+		v.AddStep("2. Extract IV from the beginning")
+		v.AddStep("3. Use AES-CBC to decrypt")
+		v.AddStep("4. Remove PKCS7 padding")
+		v.AddStep("5. Convert result to text")
+		v.AddSeparator()
+
+		// Show input
+		v.AddTextStep("Encrypted Input (Base64)", text)
+		v.AddArrow()
+
 		// Decode from base64
 		data, err := base64.StdEncoding.DecodeString(text)
 		if err != nil {
 			return "", nil, fmt.Errorf("invalid base64 string: %w", err)
 		}
+		v.AddHexStep("Decoded Data", data)
+		v.AddArrow()
 
 		// Extract IV and ciphertext
 		if len(data) < aes.BlockSize {
@@ -107,48 +99,118 @@ func (p *AESProcessor) Process(text string, operation string) (string, []string,
 		}
 		iv := data[:aes.BlockSize]
 		ciphertext := data[aes.BlockSize:]
+		v.AddHexStep("Initialization Vector (IV)", iv)
+		v.AddHexStep("Ciphertext", ciphertext)
+		v.AddArrow()
+
+		// Create cipher block
+		block, err := aes.NewCipher(p.keyManager.GetKey())
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to create cipher: %v", err)
+		}
+		v.AddStep("Created AES cipher block")
+		v.AddArrow()
 
 		// Decrypt
 		mode := cipher.NewCBCDecrypter(block, iv)
 		plaintext := make([]byte, len(ciphertext))
 		mode.CryptBlocks(plaintext, ciphertext)
+		v.AddHexStep("Decrypted Data (with padding)", plaintext)
+		v.AddArrow()
 
 		// Unpad
 		unpadded, err := p.unpad(plaintext)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to unpad: %w", err)
 		}
+		v.AddTextStep("Decrypted Text", string(unpadded))
 
-		return string(unpadded), steps, nil
+		// Add security notes
+		v.AddSeparator()
+		v.AddNote("Security Considerations:")
+		v.AddNote("1. AES is a secure symmetric encryption algorithm")
+		v.AddNote("2. The key must be kept secret")
+		v.AddNote("3. Each encryption should use a unique IV")
+		v.AddNote("4. CBC mode provides better security than ECB")
+
+		return string(unpadded), v.GetSteps(), nil
 	}
+
+	// Add encryption steps
+	v.AddStep("Encryption Process:")
+	v.AddStep("1. Convert text to bytes")
+	v.AddStep("2. Generate random IV")
+	v.AddStep("3. Add PKCS7 padding")
+	v.AddStep("4. Use AES-CBC to encrypt")
+	v.AddStep("5. Combine IV and ciphertext")
+	v.AddStep("6. Base64 encode the result")
+	v.AddSeparator()
+
+	// Show input
+	v.AddTextStep("Input Text", text)
+	v.AddArrow()
 
 	// Create initialization vector
 	iv := make([]byte, aes.BlockSize)
 	if _, err := rand.Read(iv); err != nil {
 		return "", nil, fmt.Errorf("failed to generate IV: %v", err)
 	}
+	v.AddHexStep("Generated IV", iv)
+	v.AddArrow()
+
+	// Create cipher block
+	block, err := aes.NewCipher(p.keyManager.GetKey())
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create cipher: %v", err)
+	}
+	v.AddStep("Created AES cipher block")
+	v.AddArrow()
 
 	// Pad the input
 	paddedText := p.pad([]byte(text))
-	steps = append(steps, fmt.Sprintf("Padded input to %d bytes", len(paddedText)))
+	v.AddHexStep("Padded Input", paddedText)
+	v.AddArrow()
 
 	// Encrypt
 	ciphertext := make([]byte, len(paddedText))
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, paddedText)
+	v.AddHexStep("Encrypted Data", ciphertext)
+	v.AddArrow()
 
 	// Combine IV and ciphertext
 	result := make([]byte, len(iv)+len(ciphertext))
 	copy(result, iv)
 	copy(result[len(iv):], ciphertext)
+	v.AddHexStep("Combined IV and Ciphertext", result)
+	v.AddArrow()
 
 	// Base64 encode the result
 	encoded := base64.StdEncoding.EncodeToString(result)
-	steps = append(steps, "Combined IV and encrypted data")
-	steps = append(steps, "Base64 encoded the result for safe transmission")
-	steps = append(steps, "Note: AES is a secure encryption algorithm when used properly with a strong key")
+	v.AddTextStep("Base64 Encoded Result", encoded)
 
-	return encoded, steps, nil
+	// Add security notes
+	v.AddSeparator()
+	v.AddNote("Security Considerations:")
+	v.AddNote("1. AES is a secure symmetric encryption algorithm")
+	v.AddNote("2. The key must be kept secret")
+	v.AddNote("3. Each encryption uses a unique random IV")
+	v.AddNote("4. CBC mode provides better security than ECB")
+
+	// Add how it works
+	v.AddSeparator()
+	v.AddStep("How AES Works:")
+	v.AddStep("1. Key Expansion: Generate round keys from the main key")
+	v.AddStep("2. Initial Round: Add round key to the state")
+	v.AddStep("3. Main Rounds (9/11/13 for 128/192/256-bit keys):")
+	v.AddStep("   a. SubBytes: Replace each byte using S-box")
+	v.AddStep("   b. ShiftRows: Shift rows of the state")
+	v.AddStep("   c. MixColumns: Mix columns of the state")
+	v.AddStep("   d. AddRoundKey: Add round key to the state")
+	v.AddStep("4. Final Round (without MixColumns)")
+	v.AddStep("5. CBC Mode: Each block is XORed with the previous ciphertext")
+
+	return encoded, v.GetSteps(), nil
 }
 
 func (p *AESProcessor) pad(data []byte) []byte {

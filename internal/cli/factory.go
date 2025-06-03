@@ -72,7 +72,7 @@ func createBase64Processor(cfg *config.Config) (crypto.Processor, error) {
 }
 
 func createCaesarProcessor(cfg *config.Config) (crypto.Processor, error) {
-	processor := crypto.NewCaesarCipherProcessor()
+	processor := crypto.NewCaesarProcessor()
 	if cfg != nil {
 		config := map[string]interface{}{
 			"shift": cfg.GetCaesarConfig().DefaultShift,

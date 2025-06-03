@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -10,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
-	"os"
 	"time"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
@@ -30,16 +28,12 @@ const (
 
 type HMACProcessor struct {
 	BaseConfigurableProcessor
-	key           []byte
-	keySize       int
-	keyFile       string
+	keyManager    KeyManager
 	hashAlgorithm string
 }
 
 func NewHMACProcessor() *HMACProcessor {
 	return &HMACProcessor{
-		keySize:       256,
-		keyFile:       "hmac_key.bin",
 		hashAlgorithm: HashSHA256,
 	}
 }
@@ -50,14 +44,16 @@ func (p *HMACProcessor) Configure(config map[string]interface{}) error {
 		return err
 	}
 
-	// Configure key size if provided
-	if keySize, ok := config["keySize"].(int); ok {
-		p.keySize = keySize
+	// Configure key file if provided
+	keyFile := "hmac_key.bin"
+	if kf, ok := config["keyFile"].(string); ok {
+		keyFile = kf
 	}
 
-	// Configure key file if provided
-	if keyFile, ok := config["keyFile"].(string); ok {
-		p.keyFile = keyFile
+	// Initialize key manager
+	p.keyManager = NewFileKeyManager(256, keyFile) // HMAC-SHA256 uses 256-bit keys
+	if err := p.keyManager.LoadOrGenerateKey(); err != nil {
+		return fmt.Errorf("failed to load/generate key: %w", err)
 	}
 
 	// Configure hash algorithm if provided
@@ -72,35 +68,6 @@ func (p *HMACProcessor) Configure(config map[string]interface{}) error {
 		}
 	}
 
-	// Load or generate key
-	if err := p.loadOrGenerateKey(); err != nil {
-		return fmt.Errorf("failed to load/generate key: %w", err)
-	}
-
-	return nil
-}
-
-func (p *HMACProcessor) loadOrGenerateKey() error {
-	// Try to load existing key
-	if key, err := os.ReadFile(p.keyFile); err == nil {
-		if len(key) == p.keySize/8 {
-			p.key = key
-			return nil
-		}
-	}
-
-	// Generate new key
-	key := make([]byte, p.keySize/8)
-	if _, err := rand.Read(key); err != nil {
-		return fmt.Errorf("failed to generate key: %w", err)
-	}
-
-	// Save key to file
-	if err := os.WriteFile(p.keyFile, key, 0600); err != nil {
-		return fmt.Errorf("failed to save key: %w", err)
-	}
-
-	p.key = key
 	return nil
 }
 
@@ -189,7 +156,7 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	v.AddArrow()
 
 	// Show key information
-	v.AddHexStep("HMAC Key", p.key)
+	v.AddHexStep("HMAC Key", p.keyManager.GetKey())
 	v.AddArrow()
 
 	// Demonstrate key preparation
@@ -201,7 +168,7 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 
 	// Pad key to block size if needed
 	paddedKey := make([]byte, blockSize)
-	copy(paddedKey, p.key)
+	copy(paddedKey, p.keyManager.GetKey())
 	v.AddHexStep("Padded Key", paddedKey)
 	v.AddArrow()
 
@@ -230,7 +197,7 @@ func (p *HMACProcessor) Process(text string, operation string) (string, []string
 	if err != nil {
 		return "", nil, err
 	}
-	h := hmac.New(hashFunc, p.key)
+	h := hmac.New(hashFunc, p.keyManager.GetKey())
 
 	// Measure execution time with multiple iterations for precision
 	const iterations = 1000
@@ -403,4 +370,3 @@ func xorBytes(a, b []byte) []byte {
 	}
 	return result
 }
- 
