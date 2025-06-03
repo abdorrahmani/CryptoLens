@@ -53,6 +53,45 @@ CryptoLens is an educational CLI tool designed to help users understand various 
   - Automatic key pair management
   - Base64 encoded output for encrypted data
 
+- **HMAC Authentication**
+  - Hash-based Message Authentication Code
+  - Multiple hash algorithm support:
+    - SHA-1 (legacy, not recommended)
+    - SHA-256 (widely used)
+    - SHA-512 (higher security margin)
+    - BLAKE2b-256 (faster alternative)
+    - BLAKE2b-512 (high performance)
+    - BLAKE3 (latest generation)
+  - Real-time performance measurements
+  - Detailed algorithm information
+  - Step-by-step HMAC process visualization
+  - Secure key management
+  - Output in both Hex and Base64 formats
+  - Built-in benchmarking tool:
+    - Compare performance of all HMAC algorithms
+    - Customizable number of iterations
+    - Sample text input
+    - Performance recommendations
+    - Detailed timing statistics
+    - Percentage-based performance comparison
+    - Interactive loading animation
+
+- **Password-Based Key Derivation**
+  - Multiple algorithm support:
+    - PBKDF2 (Password-Based Key Derivation Function 2)
+    - Argon2id (Memory-Hard Function)
+    - Scrypt (Memory-Hard Function)
+  - Configurable parameters:
+    - Iterations/work factor
+    - Memory usage (for Argon2id and Scrypt)
+    - Threads (for Argon2id)
+    - Key length
+  - Secure salt generation
+  - One-way key derivation
+  - Detailed parameter information
+  - Security recommendations
+  - Base64 encoded output
+
 ### 🎯 Key Features
 - Interactive CLI interface with intuitive menu system
 - Real-time step-by-step encryption process visualization
@@ -64,6 +103,9 @@ CryptoLens is an educational CLI tool designed to help users understand various 
 - Modular and extensible architecture
 - Secure key storage in project directory
 - Cross-platform compatibility (Windows, Linux, macOS)
+- Performance measurements for HMAC algorithms
+- Comprehensive algorithm information display
+- Interactive loading animations for long operations
 
 ## 🚀 Installation
 
@@ -101,7 +143,7 @@ cryptolens
 
 ### Interactive Menu
 The program will present you with an interactive menu:
-1. Choose an encryption method (1-5)
+1. Choose an encryption method (1-7)
 2. Enter your text
 3. View the detailed encryption process and explanation
 4. See the final result
@@ -110,6 +152,7 @@ The program will present you with an interactive menu:
 - Encryption keys are stored in the `keys` directory in the project root
 - RSA keys are stored as PEM files
 - AES keys are stored as binary files
+- HMAC keys are stored as binary files
 - The `keys` directory is automatically created on first run
 - Keys are securely stored with appropriate file permissions
 
@@ -141,14 +184,29 @@ Binary Representation: 01001000 01100101 01101100 01101100 01101111
 Decoded Text: Hello
 =================================
 
-RSA Encryption Example:
+HMAC Example (SHA-256):
 =================================
-Encryption Process
-Using RSA key size: 2048 bits
+HMAC Process
+Input Text: Hello
     ↓
-Encrypted with public key: [base64 encoded data]
+HMAC Key: [secure key]
     ↓
-Decrypted with private key: Hello
+HMAC Result (Hex): [64 characters]
+HMAC Result (Base64): [44 characters]
+=================================
+
+PBKDF Example (Argon2id):
+=================================
+Using argon2id for key derivation
+Salt (base64): [random salt]
+    ↓
+Argon2id Parameters:
+- Iterations: 100000
+- Memory: 65536 KB
+- Threads: 4
+- Key Length: 256 bits
+    ↓
+Derived Key (base64): [derived key]
 =================================
 ```
 
@@ -166,20 +224,29 @@ cryptolens/
 │   │   ├── aes.go           # AES encryption/decryption
 │   │   ├── sha256.go        # SHA-256 hashing
 │   │   ├── rsa.go           # RSA encryption/decryption
-│   │   └── processor.go     # Encryption processor interface
+│   │   ├── hmac.go          # HMAC implementation
+│   │   ├── pbkdf.go         # PBKDF implementation
+│   │   ├── processor.go     # Encryption processor interface
+│   │   └── keymanager.go    # Key management
 │   ├── cli/                 # CLI interface components
 │   │   ├── menu.go          # Interactive menu system
 │   │   ├── display.go       # Output formatting
 │   │   ├── input.go         # User input handling
 │   │   ├── interfaces.go    # Interface definitions
 │   │   └── factory.go       # Encryption method factory
+│   ├── config/             # Configuration management
+│   │   └── config.go       # Configuration handling
 │   └── utils/              # Utility functions
-│       └── visualizer.go    # Process visualization
+│       ├── visualizer.go    # Process visualization
+│       └── theme.go         # Color theme management
 ├── keys/                   # Encryption keys storage
 │   ├── rsa_private.pem     # RSA private key
 │   ├── rsa_public.pem      # RSA public key
-│   └── aes_key.bin         # AES key
+│   ├── aes_key.bin         # AES key
+│   └── hmac_key.bin        # HMAC key
 ├── assets/                 # Project assets
+├── config/                 # Configuration files
+│   └── config.yaml         # Default configuration
 ├── LICENSE
 └── README.md
 ```
@@ -207,6 +274,7 @@ go test ./...
 3. Add the new method to the factory in `internal/cli/factory.go`
 4. Update the menu system in `internal/cli/menu.go`
 5. Add appropriate tests
+6. Update configuration in `config/config.yaml`
 
 ## 🤝 Contributing
 
@@ -232,6 +300,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Go Standard Library for cryptographic functions
 - The cryptography community for educational resources
+- BLAKE3 team for their fast and secure hash function
 - All contributors who help improve this project
 
 ## 📫 Contact
