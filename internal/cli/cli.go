@@ -1,19 +1,24 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
 )
 
 type CLI struct {
 	factory ProcessorFactory
+	scanner *bufio.Scanner
 }
 
 func NewCLI(factory ProcessorFactory) *CLI {
 	return &CLI{
 		factory: factory,
+		scanner: bufio.NewScanner(os.Stdin),
 	}
 }
 
@@ -36,8 +41,13 @@ func (c *CLI) Run() error {
 
 		// Get text input
 		fmt.Print("Enter text to process: ")
-		var text string
-		fmt.Scanln(&text)
+		if !c.scanner.Scan() {
+			return fmt.Errorf("failed to read input: %w", c.scanner.Err())
+		}
+		text := strings.TrimSpace(c.scanner.Text())
+		if text == "" {
+			return fmt.Errorf("text cannot be empty")
+		}
 
 		// Process the text
 		result, steps, err := processor.Process(text, crypto.OperationEncrypt)
@@ -60,9 +70,18 @@ func GetAlgorithmChoice() string {
 	fmt.Println("1. HMAC")
 	fmt.Println("2. Exit")
 
-	var choice int
 	fmt.Print("Enter your choice (1-2): ")
-	fmt.Scan(&choice)
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		fmt.Println("Error reading input:", scanner.Err())
+		os.Exit(1)
+	}
+
+	choice, err := strconv.Atoi(strings.TrimSpace(scanner.Text()))
+	if err != nil {
+		fmt.Println("Invalid input. Please enter a number.")
+		return GetAlgorithmChoice()
+	}
 
 	switch choice {
 	case 1:

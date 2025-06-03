@@ -90,7 +90,7 @@ func (p *RSAProcessor) loadOrGenerateKeys(publicKeyFile, privateKeyFile string) 
 		Type:  "RSA PUBLIC KEY",
 		Bytes: publicKeyBytes,
 	})
-	if err := os.WriteFile(publicKeyFile, publicKeyPEM, 0644); err != nil {
+	if err := os.WriteFile(publicKeyFile, publicKeyPEM, 0600); err != nil {
 		return fmt.Errorf("failed to save public key: %w", err)
 	}
 

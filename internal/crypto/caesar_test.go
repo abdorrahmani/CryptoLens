@@ -7,7 +7,7 @@ import (
 func TestNewCaesarProcessor(t *testing.T) {
 	processor := NewCaesarProcessor()
 	if processor == nil {
-		t.Error("NewCaesarProcessor returned nil")
+		t.Fatal("NewCaesarProcessor returned nil")
 	}
 	if processor.shift != 3 {
 		t.Errorf("Expected default shift 3, got %d", processor.shift)

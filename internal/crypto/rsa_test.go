@@ -7,8 +7,8 @@ import (
 func TestRSAProcessor_Configure(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
-		"keySize": 2048,
-		"publicKeyFile": "test_rsa_public.pem",
+		"keySize":        2048,
+		"publicKeyFile":  "test_rsa_public.pem",
 		"privateKeyFile": "test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
@@ -19,8 +19,8 @@ func TestRSAProcessor_Configure(t *testing.T) {
 func TestRSAProcessor_Process_EncryptDecrypt(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
-		"keySize": 2048,
-		"publicKeyFile": "test_rsa_public.pem",
+		"keySize":        2048,
+		"publicKeyFile":  "test_rsa_public.pem",
 		"privateKeyFile": "test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
@@ -52,8 +52,8 @@ func TestRSAProcessor_Process_EncryptDecrypt(t *testing.T) {
 func TestRSAProcessor_Process_InvalidOperation(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
-		"keySize": 2048,
-		"publicKeyFile": "test_rsa_public.pem",
+		"keySize":        2048,
+		"publicKeyFile":  "test_rsa_public.pem",
 		"privateKeyFile": "test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
@@ -63,4 +63,4 @@ func TestRSAProcessor_Process_InvalidOperation(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for invalid operation, got nil")
 	}
-} 
+}

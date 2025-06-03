@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"crypto/hmac"
+	// nolint:gosec // SHA1 is included for educational purposes only, with clear warnings about its insecurity
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"

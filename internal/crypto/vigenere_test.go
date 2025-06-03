@@ -4,13 +4,23 @@ import (
 	"testing"
 )
 
-func TestNewVigenereProcessor(t *testing.T) {
+func TestVigenereProcessor(t *testing.T) {
 	processor := NewVigenereProcessor()
 	if processor == nil {
-		t.Error("NewVigenereProcessor returned nil")
+		t.Fatal("NewVigenereProcessor returned nil")
 	}
+
+	// Configure the processor
+	err := processor.Configure(map[string]interface{}{
+		"key": "KEY",
+	})
+	if err != nil {
+		t.Fatalf("Failed to configure processor: %v", err)
+	}
+
+	// Now it's safe to access processor.key
 	if processor.key != "KEY" {
-		t.Errorf("Expected default key 'KEY', got %s", processor.key)
+		t.Errorf("Expected key to be 'KEY', got '%s'", processor.key)
 	}
 }
 

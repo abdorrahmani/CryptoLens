@@ -125,8 +125,10 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.Header([]string{"#", "Step"})
 	for i, step := range steps {
+		// nolint:errcheck // Table operations are safe to ignore errors
 		table.Append([]string{fmt.Sprintf("%d", i+1), step})
 	}
+	// nolint:errcheck // Table render is safe to ignore errors
 	table.Render()
 }
 

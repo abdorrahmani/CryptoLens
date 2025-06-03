@@ -62,7 +62,7 @@ func (p *PBKDFProcessor) Configure(config map[string]interface{}) error {
 }
 
 // Process handles password-based key derivation
-func (p *PBKDFProcessor) Process(text string, operation string) (string, []string, error) {
+func (p *PBKDFProcessor) Process(text string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
 	// Add introduction
@@ -164,8 +164,10 @@ func isCommonPassword(password string) bool {
 	}
 
 	// Check for repeated characters
-	if matched, _ := regexp.MatchString(`(.)\1{2,}`, password); matched {
-		return true
+	for i := 0; i < len(password)-2; i++ {
+		if password[i] == password[i+1] && password[i] == password[i+2] {
+			return true
+		}
 	}
 
 	return false

@@ -54,79 +54,136 @@ func (m *Menu) Run() error {
 
 // processChoice handles the user's menu choice
 func (m *Menu) processChoice(choice int) error {
-	processor, err := m.factory.CreateProcessor(choice)
-	if err != nil {
-		return err
-	}
+	switch choice {
+	case 6: // HMAC
+		processor, err := m.factory.CreateProcessor(choice)
+		if err != nil {
+			return fmt.Errorf("failed to create processor: %w", err)
+		}
 
-	// Get operation choice (skip for SHA-256, HMAC, and PBKDF)
-	operation := crypto.OperationEncrypt
-	if choice != 4 && choice != 6 && choice != 7 { // Skip for SHA-256 (option 4), HMAC (option 6), and PBKDF (option 7)
-		operation, err = m.input.GetOperation()
+		text := GetTextInput("")
+		if text == "" {
+			return fmt.Errorf("no text provided")
+		}
+
+		result, steps, err := processor.Process(text, "encrypt")
+		if err != nil {
+			return fmt.Errorf("failed to process text: %w", err)
+		}
+		m.display.ShowResult(result, steps)
+		return nil
+
+	case 7: // PBKDF
+		processor, err := m.factory.CreateProcessor(choice)
+		if err != nil {
+			return fmt.Errorf("failed to create processor: %w", err)
+		}
+
+		text := GetTextInput("")
+		if text == "" {
+			return fmt.Errorf("no text provided")
+		}
+
+		result, steps, err := processor.Process(text, "encrypt")
+		if err != nil {
+			return fmt.Errorf("failed to process text: %w", err)
+		}
+		m.display.ShowResult(result, steps)
+		return nil
+
+	case 8: // Benchmark
+		processor, err := m.factory.CreateProcessor(choice)
+		if err != nil {
+			return fmt.Errorf("failed to create processor: %w", err)
+		}
+
+		text := GetTextInput("")
+		if text == "" {
+			return fmt.Errorf("no text provided")
+		}
+
+		result, steps, err := processor.Process(text, "benchmark")
+		if err != nil {
+			return fmt.Errorf("failed to run benchmark: %w", err)
+		}
+		m.display.ShowResult(result, steps)
+		return nil
+
+	default:
+		processor, err := m.factory.CreateProcessor(choice)
 		if err != nil {
 			return err
 		}
-	}
 
-	// Configure HMAC processor if selected
-	if choice == 6 { // HMAC option
-		if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
-			hashAlgo := GetHMACHashAlgorithm()
-			if hashAlgo == "benchmark" {
-				result, steps, err := RunHMACBenchmark()
-				if err != nil {
-					return err
-				}
-				m.display.ShowResult(result, steps)
-				return nil
-			}
-			if err := configurable.Configure(map[string]interface{}{
-				"hashAlgorithm": hashAlgo,
-			}); err != nil {
-				return fmt.Errorf("failed to configure HMAC processor: %w", err)
+		// Get operation choice (skip for SHA-256, HMAC, and PBKDF)
+		operation := crypto.OperationEncrypt
+		if choice != 4 && choice != 6 && choice != 7 { // Skip for SHA-256 (option 4), HMAC (option 6), and PBKDF (option 7)
+			operation, err = m.input.GetOperation()
+			if err != nil {
+				return err
 			}
 		}
-	}
 
-	// Configure PBKDF processor if selected
-	if choice == 7 { // PBKDF option
-		if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
-			algo := GetPBKDFAlgorithm()
-			if algo == "benchmark" {
-				result, steps, err := RunPBKDFBenchmark()
-				if err != nil {
-					return err
+		// Configure HMAC processor if selected
+		if choice == 6 { // HMAC option
+			if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
+				hashAlgo := GetHMACHashAlgorithm()
+				if hashAlgo == "benchmark" {
+					result, steps, err := RunHMACBenchmark()
+					if err != nil {
+						return err
+					}
+					m.display.ShowResult(result, steps)
+					return nil
 				}
-				m.display.ShowResult(result, steps)
-				return nil
-			}
-			if err := configurable.Configure(map[string]interface{}{
-				"algorithm": algo,
-			}); err != nil {
-				return fmt.Errorf("failed to configure PBKDF processor: %w", err)
+				if err := configurable.Configure(map[string]interface{}{
+					"hashAlgorithm": hashAlgo,
+				}); err != nil {
+					return fmt.Errorf("failed to configure HMAC processor: %w", err)
+				}
 			}
 		}
+
+		// Configure PBKDF processor if selected
+		if choice == 7 { // PBKDF option
+			if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
+				algo := GetPBKDFAlgorithm()
+				if algo == "benchmark" {
+					result, steps, err := RunPBKDFBenchmark()
+					if err != nil {
+						return err
+					}
+					m.display.ShowResult(result, steps)
+					return nil
+				}
+				if err := configurable.Configure(map[string]interface{}{
+					"algorithm": algo,
+				}); err != nil {
+					return fmt.Errorf("failed to configure PBKDF processor: %w", err)
+				}
+			}
+		}
+
+		// Show prompt for user input
+		fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Enter text to process: ", "brightGreen bold"))
+
+		// Get text input from user
+		text, err := m.input.GetText()
+		if err != nil {
+			return err
+		}
+
+		// Show the message being processed
+		m.display.ShowProcessingMessage(text)
+
+		result, steps, err := processor.Process(text, operation)
+		if err != nil {
+			return fmt.Errorf("failed to process text: %w", err)
+		}
+
+		m.display.ShowResult(result, steps)
+		return nil
 	}
-
-	// Show prompt for user input
-	fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Enter text to process: ", "brightGreen bold"))
-
-	// Get text input from user
-	text, err := m.input.GetText()
-	if err != nil {
-		return err
-	}
-
-	// Show the message being processed
-	m.display.ShowProcessingMessage(text)
-
-	result, steps, err := processor.Process(text, operation)
-	if err != nil {
-		return err
-	}
-
-	m.display.ShowResult(result, steps)
-	return nil
 }
 
 // GetHMACHashAlgorithm prompts user to select a hash algorithm for HMAC
@@ -232,12 +289,18 @@ func RunHMACBenchmark() (string, []string, error) {
 		}
 
 		// Warm-up
-		processor.Process(text, "encrypt")
+		if _, _, err := processor.Process(text, "encrypt"); err != nil {
+			done <- true // Stop the loading animation
+			return "", nil, fmt.Errorf("failed to warm up %s: %w", algo, err)
+		}
 
 		// Benchmark
 		start := time.Now()
 		for j := 0; j < iterations; j++ {
-			processor.Process(text, "encrypt")
+			if _, _, err := processor.Process(text, "encrypt"); err != nil {
+				done <- true // Stop the loading animation
+				return "", nil, fmt.Errorf("failed to process iteration %d for %s: %w", j, algo, err)
+			}
 		}
 		duration := time.Since(start)
 		results[i] = struct {
@@ -402,12 +465,18 @@ func RunPBKDFBenchmark() (string, []string, error) {
 		}
 
 		// Warm-up
-		processor.Process(text, "benchmark")
+		if _, _, err := processor.Process(text, "benchmark"); err != nil {
+			done <- true // Stop the loading animation
+			return "", nil, fmt.Errorf("failed to warm up %s: %w", algo, err)
+		}
 
 		// Benchmark
 		start := time.Now()
 		for j := 0; j < iterations; j++ {
-			processor.Process(text, "benchmark")
+			if _, _, err := processor.Process(text, "benchmark"); err != nil {
+				done <- true // Stop the loading animation
+				return "", nil, fmt.Errorf("failed to process iteration %d for %s: %w", j, algo, err)
+			}
 		}
 		duration := time.Since(start)
 		results[i] = struct {

@@ -9,7 +9,6 @@ import (
 
 type Base64Processor struct {
 	BaseConfigurableProcessor
-	paddingChar string
 }
 
 func NewBase64Processor() *Base64Processor {

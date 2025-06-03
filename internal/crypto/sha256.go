@@ -20,7 +20,7 @@ func (p *SHA256Processor) Configure(config map[string]interface{}) error {
 	return p.BaseConfigurableProcessor.Configure(config)
 }
 
-func (p *SHA256Processor) Process(text string, operation string) (string, []string, error) {
+func (p *SHA256Processor) Process(text string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
 	// Add introduction

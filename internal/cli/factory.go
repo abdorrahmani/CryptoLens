@@ -98,7 +98,7 @@ func createAESProcessor(cfg *config.Config) (crypto.Processor, error) {
 	return processor, nil
 }
 
-func createSHA256Processor(cfg *config.Config) (crypto.Processor, error) {
+func createSHA256Processor(_ *config.Config) (crypto.Processor, error) {
 	return crypto.NewSHA256Processor(), nil
 }
 

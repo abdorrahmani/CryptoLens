@@ -8,7 +8,7 @@ import (
 func TestNewAESProcessor(t *testing.T) {
 	processor := NewAESProcessor()
 	if processor == nil {
-		t.Error("NewAESProcessor returned nil")
+		t.Fatal("NewAESProcessor returned nil")
 	}
 	if processor.keySize != 256 {
 		t.Errorf("Expected default key size 256, got %d", processor.keySize)

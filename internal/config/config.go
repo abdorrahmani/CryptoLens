@@ -8,8 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ConfigProvider defines the interface for configuration management
-type ConfigProvider interface {
+// Provider defines the interface for configuration management
+type Provider interface {
 	GetAESConfig() AESConfig
 	GetBase64Config() Base64Config
 	GetCaesarConfig() CaesarConfig
@@ -66,7 +66,7 @@ type GeneralConfig struct {
 	Debug    bool   `yaml:"debug"`
 }
 
-// Config implements ConfigProvider interface
+// Config implements Provider interface
 type Config struct {
 	AES     AESConfig     `yaml:"aes"`
 	Base64  Base64Config  `yaml:"base64"`
@@ -119,7 +119,7 @@ func (c *Config) Save(path string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -202,7 +202,7 @@ func SaveConfig(configPath string, config *Config) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
