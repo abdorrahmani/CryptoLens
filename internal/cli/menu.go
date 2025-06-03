@@ -109,11 +109,7 @@ func (m *Menu) processChoice(choice int) error {
 	}
 
 	// Show prompt for user input
-	message := ""
-	if choice == 3 && operation == crypto.OperationDecrypt {
-		message = "aes_decrypt"
-	}
-	m.display.ShowMessage(message)
+	fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Enter text to process: ", "brightGreen bold"))
 
 	// Get text input from user
 	text, err := m.input.GetText()
