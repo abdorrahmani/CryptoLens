@@ -23,13 +23,13 @@ func NewVisualizer() *Visualizer {
 func (v *Visualizer) AddStep(step string) {
 	if strings.HasPrefix(step, "Note:") {
 		v.steps = append(v.steps, v.theme.Format(step, "dim"))
-	} else if strings.HasPrefix(step, "How") || strings.HasPrefix(step, "Security") {
+	} else if strings.HasPrefix(step, "How to use") || strings.HasPrefix(step, "Security considerations") {
 		v.steps = append(v.steps, v.theme.Format(step, "bold"))
 	} else if strings.Contains(step, "->") {
 		v.steps = append(v.steps, v.theme.Format(step, "brightYellow"))
-	} else if strings.HasPrefix(step, "Character") {
+	} else if strings.HasPrefix(step, "Character:") {
 		v.steps = append(v.steps, v.theme.Format(step, "brightPurple"))
-	} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
+	} else if strings.HasPrefix(step, "ASCII:") || strings.HasPrefix(step, "Binary:") {
 		v.steps = append(v.steps, v.theme.Format(step, "brightBlue"))
 	} else {
 		v.steps = append(v.steps, step)

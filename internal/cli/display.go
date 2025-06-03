@@ -157,7 +157,7 @@ func (d *ConsoleDisplay) ShowMessage(message string) {
 	if message == "aes_decrypt" {
 		fmt.Printf("\n%s", d.theme.Format("Enter the encrypted text (in base64 format): ", "brightGreen bold"))
 	} else {
-		fmt.Printf("\n%s", d.theme.Format("Enter text to process: ", "brightGreen bold"))
+		fmt.Printf("\n%s", d.theme.Format(message, "brightGreen bold"))
 	}
 }
 
