@@ -91,8 +91,8 @@ func (u *MenuUtils) GetBenchmarkText(defaultText string) string {
 }
 
 // GetBenchmarkIterations gets the number of iterations for benchmarking
-func (u *MenuUtils) GetBenchmarkIterations(defaultIterations, min, max int) int {
-	iterations := GetIntInput(fmt.Sprintf("\nEnter number of iterations (default: %d): ", defaultIterations), min, max)
+func (u *MenuUtils) GetBenchmarkIterations(defaultIterations, minValue, maxValue int) int {
+	iterations := GetIntInput(fmt.Sprintf("\nEnter number of iterations (default: %d): ", defaultIterations), minValue, maxValue)
 	if iterations == 0 {
 		return defaultIterations
 	}

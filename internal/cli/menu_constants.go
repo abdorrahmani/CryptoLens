@@ -46,6 +46,6 @@ func GetSkipOperationOptions() map[int]bool {
 }
 
 // GetDefaultOperation returns the default operation for a given option
-func GetDefaultOperation(option int) string {
+func GetDefaultOperation(_ int) string {
 	return crypto.OperationEncrypt
 }
