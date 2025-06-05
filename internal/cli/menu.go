@@ -14,17 +14,38 @@ import (
 
 // Menu implements MenuInterface for handling the main application flow
 type Menu struct {
-	display DisplayHandler
-	input   UserInputHandler
-	factory ProcessorFactory
+	display  DisplayHandler
+	input    UserInputHandler
+	factory  ProcessorFactory
+	handlers map[int]AlgorithmHandler
+	utils    *MenuUtils
 }
 
 // NewMenu creates a new menu instance
 func NewMenu(display DisplayHandler, input UserInputHandler, factory ProcessorFactory) *Menu {
-	return &Menu{
-		display: display,
-		input:   input,
-		factory: factory,
+	menu := &Menu{
+		display:  display,
+		input:    input,
+		factory:  factory,
+		handlers: make(map[int]AlgorithmHandler),
+		utils:    NewMenuUtils(display, input),
+	}
+	menu.registerHandlers()
+	return menu
+}
+
+// registerHandlers registers all algorithm handlers
+func (m *Menu) registerHandlers() {
+	// Register special handlers
+	m.handlers[OptionHMAC] = NewHMACHandler(m.display, m.input)
+	m.handlers[OptionPBKDF] = NewPBKDFHandler(m.display, m.input)
+
+	// Register default handler for other algorithms
+	defaultHandler := NewDefaultHandler(m.display, m.input)
+	for _, option := range GetMenuOptions() {
+		if _, exists := m.handlers[option.ID]; !exists && option.ID != OptionExit {
+			m.handlers[option.ID] = defaultHandler
+		}
 	}
 }
 
@@ -34,14 +55,13 @@ func (m *Menu) Run() error {
 
 	for {
 		m.display.ShowMenu()
-
 		choice, err := m.input.GetChoice()
 		if err != nil {
 			m.display.ShowError(err)
 			continue
 		}
 
-		if choice == 8 {
+		if choice == OptionExit {
 			m.display.ShowGoodbye()
 			return nil
 		}
@@ -54,136 +74,31 @@ func (m *Menu) Run() error {
 
 // processChoice handles the user's menu choice
 func (m *Menu) processChoice(choice int) error {
-	switch choice {
-	case 6: // HMAC
-		processor, err := m.factory.CreateProcessor(choice)
-		if err != nil {
-			return fmt.Errorf("failed to create processor: %w", err)
-		}
-
-		text := GetTextInput("")
-		if text == "" {
-			return fmt.Errorf("no text provided")
-		}
-
-		result, steps, err := processor.Process(text, "encrypt")
-		if err != nil {
-			return fmt.Errorf("failed to process text: %w", err)
-		}
-		m.display.ShowResult(result, steps)
-		return nil
-
-	case 7: // PBKDF
-		processor, err := m.factory.CreateProcessor(choice)
-		if err != nil {
-			return fmt.Errorf("failed to create processor: %w", err)
-		}
-
-		text := GetTextInput("")
-		if text == "" {
-			return fmt.Errorf("no text provided")
-		}
-
-		result, steps, err := processor.Process(text, "encrypt")
-		if err != nil {
-			return fmt.Errorf("failed to process text: %w", err)
-		}
-		m.display.ShowResult(result, steps)
-		return nil
-
-	case 8: // Benchmark
-		processor, err := m.factory.CreateProcessor(choice)
-		if err != nil {
-			return fmt.Errorf("failed to create processor: %w", err)
-		}
-
-		text := GetTextInput("")
-		if text == "" {
-			return fmt.Errorf("no text provided")
-		}
-
-		result, steps, err := processor.Process(text, "benchmark")
-		if err != nil {
-			return fmt.Errorf("failed to run benchmark: %w", err)
-		}
-		m.display.ShowResult(result, steps)
-		return nil
-
-	default:
-		processor, err := m.factory.CreateProcessor(choice)
-		if err != nil {
-			return err
-		}
-
-		// Get operation choice (skip for SHA-256, HMAC, and PBKDF)
-		operation := crypto.OperationEncrypt
-		if choice != 4 && choice != 6 && choice != 7 { // Skip for SHA-256 (option 4), HMAC (option 6), and PBKDF (option 7)
-			operation, err = m.input.GetOperation()
-			if err != nil {
-				return err
-			}
-		}
-
-		// Configure HMAC processor if selected
-		if choice == 6 { // HMAC option
-			if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
-				hashAlgo := GetHMACHashAlgorithm()
-				if hashAlgo == "benchmark" {
-					result, steps, err := RunHMACBenchmark()
-					if err != nil {
-						return err
-					}
-					m.display.ShowResult(result, steps)
-					return nil
-				}
-				if err := configurable.Configure(map[string]interface{}{
-					"hashAlgorithm": hashAlgo,
-				}); err != nil {
-					return fmt.Errorf("failed to configure HMAC processor: %w", err)
-				}
-			}
-		}
-
-		// Configure PBKDF processor if selected
-		if choice == 7 { // PBKDF option
-			if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
-				algo := GetPBKDFAlgorithm()
-				if algo == "benchmark" {
-					result, steps, err := RunPBKDFBenchmark()
-					if err != nil {
-						return err
-					}
-					m.display.ShowResult(result, steps)
-					return nil
-				}
-				if err := configurable.Configure(map[string]interface{}{
-					"algorithm": algo,
-				}); err != nil {
-					return fmt.Errorf("failed to configure PBKDF processor: %w", err)
-				}
-			}
-		}
-
-		// Show prompt for user input
-		fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Enter text to process: ", "brightGreen bold"))
-
-		// Get text input from user
-		text, err := m.input.GetText()
-		if err != nil {
-			return err
-		}
-
-		// Show the message being processed
-		m.display.ShowProcessingMessage(text)
-
-		result, steps, err := processor.Process(text, operation)
-		if err != nil {
-			return fmt.Errorf("failed to process text: %w", err)
-		}
-
-		m.display.ShowResult(result, steps)
-		return nil
+	handler, exists := m.handlers[choice]
+	if !exists {
+		return fmt.Errorf("invalid choice: %d", choice)
 	}
+
+	processor, err := m.factory.CreateProcessor(choice)
+	if err != nil {
+		return fmt.Errorf("failed to create processor: %w", err)
+	}
+
+	operation := m.getOperation(choice)
+	return m.utils.ProcessText(handler, processor, operation)
+}
+
+// getOperation determines the operation based on the menu choice
+func (m *Menu) getOperation(choice int) string {
+	if GetSkipOperationOptions()[choice] {
+		return GetDefaultOperation(choice)
+	}
+
+	operation, err := m.input.GetOperation()
+	if err != nil {
+		return GetDefaultOperation(choice)
+	}
+	return operation
 }
 
 // GetHMACHashAlgorithm prompts user to select a hash algorithm for HMAC
