@@ -3,6 +3,9 @@ package cli
 import "github.com/abdorrahmani/cryptolens/internal/crypto"
 
 const (
+	// AppVersion is the current version of the application
+	AppVersion = "v1.3.0"
+
 	// Menu options
 	OptionBase64 = iota + 1
 	OptionCaesar

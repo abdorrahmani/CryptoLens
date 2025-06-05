@@ -144,6 +144,7 @@ func (d *ConsoleDisplay) ShowError(err error) {
 // ShowWelcome displays the welcome message
 func (d *ConsoleDisplay) ShowWelcome() {
 	fmt.Printf("%s\n", d.theme.Format("Welcome to CryptoLens!", "bold brightCyan"))
+	fmt.Printf("%s\n", d.theme.Format("Version: "+AppVersion, "dim white"))
 	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "dim white"))
 	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
 }
