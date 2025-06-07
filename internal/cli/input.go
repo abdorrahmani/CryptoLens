@@ -67,16 +67,31 @@ func (i *ConsoleInput) GetOperation() (string, error) {
 	return crypto.OperationDecrypt, nil
 }
 
-// GetIntInput prompts for an integer input within a specified range
-func GetIntInput(prompt string, minValue, maxValue int) int {
+// GetTextInput gets text input with a default value
+func GetTextInput(defaultValue string) string {
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return defaultValue
+	}
+	return input
+}
+
+// GetIntInput gets an integer input within a range
+func GetIntInput(prompt string, min, max int) int {
 	for {
 		fmt.Print(prompt)
-		var input int
-		_, err := fmt.Scanln(&input)
-		if err != nil || input < minValue || input > maxValue {
-			fmt.Printf("Please enter a number between %d and %d\n", minValue, maxValue)
+		input := GetTextInput("")
+		if input == "" {
+			return 0
+		}
+
+		value, err := strconv.Atoi(input)
+		if err != nil || value < min || value > max {
+			fmt.Printf("Please enter a number between %d and %d\n", min, max)
 			continue
 		}
-		return input
+		return value
 	}
 }
