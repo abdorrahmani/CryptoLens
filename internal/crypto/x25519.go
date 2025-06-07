@@ -423,6 +423,83 @@ func (p *X25519Processor) Process(_ string, _ string) (string, []string, error) 
 	v.AddStep("   • Regular security audits")
 	v.AddSeparator()
 
+	// Add TLS Handshake Simulation
+	v.AddStep("🔄 TLS 1.3 Handshake Simulation")
+	v.AddStep("============================")
+	v.AddStep("Simulating a TLS 1.3 handshake with X25519:")
+	v.AddSeparator()
+
+	// Client Hello
+	v.AddStep("1. Client Hello")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ Client Random: %x", make([]byte, 32)))
+	v.AddStep("   │ Supported Groups: X25519, P-256     │")
+	v.AddStep("   │ Cipher Suites:                      │")
+	v.AddStep("   │   • TLS_AES_256_GCM_SHA384         │")
+	v.AddStep("   │   • TLS_CHACHA20_POLY1305_SHA256   │")
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Server Hello
+	v.AddStep("2. Server Hello")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ Server Random: %x", make([]byte, 32)))
+	v.AddStep("   │ Selected Group: X25519              │")
+	v.AddStep("   │ Selected Cipher: TLS_AES_256_GCM_SHA384")
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Server Certificate
+	v.AddStep("3. Server Certificate")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep("   │ Certificate Chain:                  │")
+	v.AddStep("   │   • Server Certificate (RSA-2048)   │")
+	v.AddStep("   │   • Intermediate CA (RSA-2048)      │")
+	v.AddStep("   │   • Root CA (RSA-4096)              │")
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Server Key Exchange
+	v.AddStep("4. Server Key Exchange")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ X25519 Public Key: %x", alicePublic))
+	v.AddStep(fmt.Sprintf("   │ Signature: %x", make([]byte, 256)))
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Client Key Exchange
+	v.AddStep("5. Client Key Exchange")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ X25519 Public Key: %x", bobPublic))
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Finished Messages
+	v.AddStep("6. Finished Messages")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ Server Finished: %x", make([]byte, 32)))
+	v.AddStep(fmt.Sprintf("   │ Client Finished: %x", make([]byte, 32)))
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	// Session Keys
+	v.AddStep("7. Derived Session Keys")
+	v.AddStep("   ┌─────────────────────────────────────┐")
+	v.AddStep(fmt.Sprintf("   │ Client Write Key: %x", derivedKey))
+	v.AddStep(fmt.Sprintf("   │ Server Write Key: %x", derivedKey))
+	v.AddStep(fmt.Sprintf("   │ Client Write IV: %x", make([]byte, 12)))
+	v.AddStep(fmt.Sprintf("   │ Server Write IV: %x", make([]byte, 12)))
+	v.AddStep("   └─────────────────────────────────────┘")
+	v.AddSeparator()
+
+	v.AddStep("Handshake Complete!")
+	v.AddStep("===================")
+	v.AddStep("• X25519 key exchange successful")
+	v.AddStep("• Certificate verified")
+	v.AddStep("• Session keys derived")
+	v.AddStep("• Ready for encrypted communication")
+	v.AddSeparator()
+
 	// Final result
 	result := "Successfully demonstrated X25519 key exchange and AES encryption"
 	return result, v.GetSteps(), nil
