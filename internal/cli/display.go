@@ -34,8 +34,9 @@ func (d *ConsoleDisplay) ShowMenu() {
 	fmt.Printf("%s\n", d.theme.Format("6. HMAC Authentication", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("7. Password-Based Key Derivation", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("8. Diffie-Hellman Key Exchange", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("9. Exit", "yellow"))
-	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-9): ", "green"))
+	fmt.Printf("%s\n", d.theme.Format("9. X25519 Key Exchange", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("10. Exit", "yellow"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-10): ", "green"))
 }
 
 // ShowResult displays the processing result and steps

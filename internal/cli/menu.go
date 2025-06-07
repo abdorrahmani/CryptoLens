@@ -37,7 +37,7 @@ func (m *Menu) Run() error {
 			continue
 		}
 
-		if choice == 9 {
+		if choice == 10 {
 			m.display.ShowGoodbye()
 			return nil
 		}
@@ -56,9 +56,9 @@ func (m *Menu) processChoice(choice int) error {
 		return fmt.Errorf("failed to create processor: %w", err)
 	}
 
-	// Get operation choice (skip for SHA-256, HMAC, PBKDF, and DH)
+	// Get operation choice (skip for SHA-256, HMAC, PBKDF, DH, and X25519)
 	operation := crypto.OperationEncrypt
-	if choice != 4 && choice != 6 && choice != 7 && choice != 8 { // Skip for SHA-256 (4), HMAC (6), PBKDF (7), and DH (8)
+	if choice != 4 && choice != 6 && choice != 7 && choice != 8 && choice != 9 { // Skip for SHA-256 (4), HMAC (6), PBKDF (7), DH (8), and X25519 (9)
 		operation, err = m.input.GetOperation()
 		if err != nil {
 			return err
@@ -105,9 +105,9 @@ func (m *Menu) processChoice(choice int) error {
 		}
 	}
 
-	// Special handling for DH demonstration
-	if choice == 8 {
-		fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Press Enter to start Diffie-Hellman key exchange demonstration...", "brightGreen bold"))
+	// Special handling for DH and X25519 demonstration
+	if choice == 8 || choice == 9 {
+		fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Press Enter to start key exchange demonstration...", "brightGreen bold"))
 		// Set DH mode to allow empty input
 		if input, ok := m.input.(*ConsoleInput); ok {
 			input.SetDHMode(true)
@@ -120,7 +120,7 @@ func (m *Menu) processChoice(choice int) error {
 		if input, ok := m.input.(*ConsoleInput); ok {
 			input.SetDHMode(false)
 		}
-		// Process with empty string for DH demonstration
+		// Process with empty string for demonstration
 		result, steps, err := processor.Process("", operation)
 		if err != nil {
 			return fmt.Errorf("failed to process: %w", err)

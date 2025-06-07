@@ -34,6 +34,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(6, createHMACProcessor)
 	factory.RegisterProcessor(7, createPBKDFProcessor)
 	factory.RegisterProcessor(8, createDHProcessor)
+	factory.RegisterProcessor(9, createX25519Processor)
 
 	return factory
 }
@@ -167,6 +168,19 @@ func createDHProcessor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure DH processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createX25519Processor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewX25519Processor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"privateKeyFile": cfg.GetDHConfig().PrivateKeyFile,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure X25519 processor: %w", err)
 		}
 	}
 	return processor, nil
