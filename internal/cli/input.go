@@ -79,7 +79,7 @@ func GetTextInput(defaultValue string) string {
 }
 
 // GetIntInput gets an integer input within a range
-func GetIntInput(prompt string, min, max int) int {
+func GetIntInput(prompt string, minValue, maxValue int) int {
 	for {
 		fmt.Print(prompt)
 		input := GetTextInput("")
@@ -88,8 +88,8 @@ func GetIntInput(prompt string, min, max int) int {
 		}
 
 		value, err := strconv.Atoi(input)
-		if err != nil || value < min || value > max {
-			fmt.Printf("Please enter a number between %d and %d\n", min, max)
+		if err != nil || value < minValue || value > maxValue {
+			fmt.Printf("Please enter a number between %d and %d\n", minValue, maxValue)
 			continue
 		}
 		return value
