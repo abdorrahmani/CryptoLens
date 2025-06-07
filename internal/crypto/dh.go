@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"time"
 
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
+	"golang.org/x/crypto/curve25519"
 )
 
 // DHProcessor implements the Processor interface for Diffie-Hellman key exchange
@@ -75,6 +77,7 @@ func (p *DHProcessor) generatePrivateKey() (*big.Int, error) {
 // Process implements the Processor interface for Diffie-Hellman
 func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
+	startTime := time.Now()
 
 	// Introduction
 	v.AddStep("Diffie-Hellman Key Exchange")
@@ -255,6 +258,33 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 
 	v.AddStep(fmt.Sprintf("Decrypted Message: %s", string(plaintext)))
 	v.AddArrow()
+
+	// Performance Comparison
+	v.AddStep("⚡ Performance Comparison")
+	v.AddStep("=======================")
+	dhDuration := time.Since(startTime)
+	v.AddStep(fmt.Sprintf("Classic DH Execution Time: %v", dhDuration))
+
+	// Measure X25519 performance without running the full process
+	x25519Start := time.Now()
+	alicePrivateX := make([]byte, 32)
+	bobPrivateX := make([]byte, 32)
+	rand.Read(alicePrivateX)
+	rand.Read(bobPrivateX)
+	alicePrivateX[0] &= 248
+	alicePrivateX[31] &= 127
+	alicePrivateX[31] |= 64
+	bobPrivateX[0] &= 248
+	bobPrivateX[31] &= 127
+	bobPrivateX[31] |= 64
+	alicePublicX, _ := curve25519.X25519(alicePrivateX, curve25519.Basepoint)
+	bobPublicX, _ := curve25519.X25519(bobPrivateX, curve25519.Basepoint)
+	_, _ = curve25519.X25519(alicePrivateX, bobPublicX)
+	_, _ = curve25519.X25519(bobPrivateX, alicePublicX)
+	x25519Duration := time.Since(x25519Start)
+	v.AddStep(fmt.Sprintf("X25519 Execution Time: %v", x25519Duration))
+	v.AddStep(fmt.Sprintf("X25519 is %.2fx faster than Classic DH", float64(dhDuration)/float64(x25519Duration)))
+	v.AddSeparator()
 
 	// Explain the process
 	v.AddStep("How it works:")
