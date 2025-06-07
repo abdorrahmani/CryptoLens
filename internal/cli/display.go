@@ -2,11 +2,9 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
-	"github.com/olekukonko/tablewriter"
 )
 
 const (
@@ -109,6 +107,7 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 		if len(sectionSteps) > 0 {
 			fmt.Printf("\n%s\n", d.theme.Format(section, "bold"))
 			fmt.Printf("%s\n", d.theme.Format(strings.Repeat("=", len(section)), "dim"))
+
 			for _, step := range sectionSteps {
 				if strings.HasPrefix(step, "Note:") {
 					fmt.Printf("%s\n", d.theme.Format(step, "dim"))
@@ -119,22 +118,18 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 				} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
 					fmt.Printf("%s\n", d.theme.Format(step, "brightBlue"))
 				} else {
-					fmt.Printf("%s\n", step)
+					// Split step into title and details if it contains a colon
+					parts := strings.SplitN(step, ":", 2)
+					if len(parts) == 2 {
+						fmt.Printf("%s %s\n", d.theme.Format(parts[0]+":", "bold"), d.theme.Format(parts[1], "white"))
+					} else {
+						fmt.Printf("%s\n", d.theme.Format(step, "white"))
+					}
 				}
 			}
 			fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
 		}
 	}
-
-	// Add tablewriter table for steps
-	table := tablewriter.NewWriter(os.Stdout)
-	table.Header([]string{"#", "Step"})
-	for i, step := range steps {
-		// nolint:errcheck // Table operations are safe to ignore errors
-		table.Append([]string{fmt.Sprintf("%d", i+1), step})
-	}
-	// nolint:errcheck // Table render is safe to ignore errors
-	table.Render()
 }
 
 // ShowError displays an error message
