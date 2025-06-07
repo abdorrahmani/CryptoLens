@@ -68,7 +68,7 @@ func (p *DHProcessor) generatePrivateKey() (*big.Int, error) {
 }
 
 // Process implements the Processor interface for Diffie-Hellman
-func (p *DHProcessor) Process(input string, operation string) (string, []string, error) {
+func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
 
 	// Introduction
