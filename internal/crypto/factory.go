@@ -29,6 +29,8 @@ func (f *ProcessorFactory) CreateProcessor(algorithm string) (Processor, error) 
 		return NewRSAProcessor(), nil
 	case "sha256":
 		return NewSHA256Processor(), nil
+	case "dh":
+		return NewDHProcessor(), nil
 	default:
 		return nil, fmt.Errorf("unsupported algorithm: %s", algorithm)
 	}

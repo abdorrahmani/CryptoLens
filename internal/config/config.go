@@ -16,6 +16,7 @@ type Provider interface {
 	GetRSAConfig() RSAConfig
 	GetHMACConfig() HMACConfig
 	GetPBKDFConfig() PBKDFConfig
+	GetDHConfig() DHConfig
 	GetGeneralConfig() GeneralConfig
 	Save(path string) error
 }
@@ -60,6 +61,16 @@ type PBKDFConfig struct {
 	AvailableAlgorithms []string `yaml:"availableAlgorithms"`
 }
 
+// DHConfig represents Diffie-Hellman specific configuration
+type DHConfig struct {
+	KeySize          int    `yaml:"keySize"`
+	Generator        int    `yaml:"generator"`
+	PrimeFile        string `yaml:"primeFile"`
+	PrivateKeyFile   string `yaml:"privateKeyFile"`
+	PublicKeyFile    string `yaml:"publicKeyFile"`
+	SharedSecretFile string `yaml:"sharedSecretFile"`
+}
+
 // GeneralConfig represents general application settings
 type GeneralConfig struct {
 	LogLevel string `yaml:"logLevel"`
@@ -74,6 +85,7 @@ type Config struct {
 	RSA     RSAConfig     `yaml:"rsa"`
 	HMAC    HMACConfig    `yaml:"hmac"`
 	PBKDF   PBKDFConfig   `yaml:"pbkdf"`
+	DH      DHConfig      `yaml:"dh"`
 	General GeneralConfig `yaml:"general"`
 }
 
@@ -105,6 +117,11 @@ func (c *Config) GetHMACConfig() HMACConfig {
 // GetPBKDFConfig returns the PBKDF configuration
 func (c *Config) GetPBKDFConfig() PBKDFConfig {
 	return c.PBKDF
+}
+
+// GetDHConfig returns the Diffie-Hellman configuration
+func (c *Config) GetDHConfig() DHConfig {
+	return c.DH
 }
 
 // GetGeneralConfig returns the general configuration
@@ -192,6 +209,14 @@ func LoadConfig(configPath string) (*Config, error) {
 		config.HMAC.HashAlgorithm = "sha256"
 	}
 
+	// Set DH defaults
+	config.DH.KeySize = 2048
+	config.DH.Generator = 2
+	config.DH.PrimeFile = filepath.Join(keysDir, "dh_prime.bin")
+	config.DH.PrivateKeyFile = filepath.Join(keysDir, "dh_private.bin")
+	config.DH.PublicKeyFile = filepath.Join(keysDir, "dh_public.bin")
+	config.DH.SharedSecretFile = filepath.Join(keysDir, "dh_shared.bin")
+
 	return &config, nil
 }
 
@@ -249,6 +274,14 @@ func createDefaultConfig() *Config {
 	config.PBKDF.Threads = 4
 	config.PBKDF.KeyLength = 32
 	config.PBKDF.AvailableAlgorithms = []string{"pbkdf2", "argon2id", "scrypt"}
+
+	// Set DH defaults
+	config.DH.KeySize = 2048
+	config.DH.Generator = 2
+	config.DH.PrimeFile = filepath.Join(keysDir, "dh_prime.bin")
+	config.DH.PrivateKeyFile = filepath.Join(keysDir, "dh_private.bin")
+	config.DH.PublicKeyFile = filepath.Join(keysDir, "dh_public.bin")
+	config.DH.SharedSecretFile = filepath.Join(keysDir, "dh_shared.bin")
 
 	// Set General defaults
 	config.General.LogLevel = "info"

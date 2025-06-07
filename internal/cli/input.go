@@ -13,15 +13,17 @@ import (
 
 // ConsoleInput implements UserInputHandler for console input
 type ConsoleInput struct {
-	scanner *bufio.Scanner
-	theme   utils.Theme
+	scanner  *bufio.Scanner
+	theme    utils.Theme
+	isDHMode bool
 }
 
 // NewConsoleInput creates a new console input handler
 func NewConsoleInput() *ConsoleInput {
 	return &ConsoleInput{
-		scanner: bufio.NewScanner(os.Stdin),
-		theme:   utils.DefaultTheme,
+		scanner:  bufio.NewScanner(os.Stdin),
+		theme:    utils.DefaultTheme,
+		isDHMode: false,
 	}
 }
 
@@ -29,10 +31,10 @@ func (i *ConsoleInput) GetChoice() (int, error) {
 	i.scanner.Scan()
 	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
 	if err != nil {
-		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 8")
+		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 9")
 	}
-	if choice < 1 || choice > 8 {
-		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 8")
+	if choice < 1 || choice > 9 {
+		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 9")
 	}
 	return choice, nil
 }
@@ -40,6 +42,10 @@ func (i *ConsoleInput) GetChoice() (int, error) {
 func (i *ConsoleInput) GetText() (string, error) {
 	i.scanner.Scan()
 	text := i.scanner.Text()
+	// Allow empty text for DH demonstration
+	if text == "" && i.isDHMode {
+		return "", nil
+	}
 	if text == "" {
 		return "", fmt.Errorf("text cannot be empty")
 	}
@@ -94,4 +100,9 @@ func GetIntInput(prompt string, minValue, maxValue int) int {
 		}
 		return value
 	}
+}
+
+// SetDHMode sets the DH mode flag
+func (i *ConsoleInput) SetDHMode(isDH bool) {
+	i.isDHMode = isDH
 }

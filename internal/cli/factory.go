@@ -33,6 +33,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(5, createRSAProcessor)
 	factory.RegisterProcessor(6, createHMACProcessor)
 	factory.RegisterProcessor(7, createPBKDFProcessor)
+	factory.RegisterProcessor(8, createDHProcessor)
 
 	return factory
 }
@@ -149,6 +150,23 @@ func createPBKDFProcessor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure PBKDF processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createDHProcessor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewDHProcessor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"keySize":        cfg.GetDHConfig().KeySize,
+			"generator":      cfg.GetDHConfig().Generator,
+			"primeFile":      cfg.GetDHConfig().PrimeFile,
+			"privateKeyFile": cfg.GetDHConfig().PrivateKeyFile,
+			"publicKeyFile":  cfg.GetDHConfig().PublicKeyFile,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure DH processor: %w", err)
 		}
 	}
 	return processor, nil
