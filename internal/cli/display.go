@@ -9,6 +9,10 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+const (
+	version = "1.3.0"
+)
+
 // ConsoleDisplay implements DisplayHandler for console output
 type ConsoleDisplay struct {
 	theme utils.Theme
@@ -143,8 +147,7 @@ func (d *ConsoleDisplay) ShowError(err error) {
 
 // ShowWelcome displays the welcome message
 func (d *ConsoleDisplay) ShowWelcome() {
-	fmt.Printf("%s\n", d.theme.Format("Welcome to CryptoLens!", "bold brightCyan"))
-
+	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "bold brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "dim"))
 	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "dim white"))
 	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
 }
