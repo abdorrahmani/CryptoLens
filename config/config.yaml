@@ -44,6 +44,15 @@ pbkdf:
     - "argon2id"
     - "scrypt"
 
+# Diffie-Hellman Settings
+dh:
+  keySize: 2048  # Key size in bits
+  generator: 2  # Generator value (g)
+  primeFile: "dh_prime.bin"  # File to store the prime number
+  privateKeyFile: "dh_private.bin"  # File to store private key
+  publicKeyFile: "dh_public.bin"  # File to store public key
+  sharedSecretFile: "dh_shared.bin"  # File to store shared secret
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)
