@@ -34,6 +34,8 @@ func NewX25519Processor() *X25519Processor {
 func (p *X25519Processor) Configure(config map[string]interface{}) error {
 	if privateKeyFile, ok := config["privateKeyFile"].(string); ok {
 		p.keyManager = NewFileKeyManager(32, privateKeyFile)
+	} else if _, ok := config["privateKeyFile"]; ok {
+		return fmt.Errorf("invalid privateKeyFile type: expected string")
 	}
 	return nil
 }
