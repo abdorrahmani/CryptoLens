@@ -37,7 +37,7 @@ func (m *Menu) Run() error {
 			continue
 		}
 
-		if choice == 10 {
+		if choice == 11 {
 			m.display.ShowGoodbye()
 			return nil
 		}
@@ -101,6 +101,30 @@ func (m *Menu) processChoice(choice int) error {
 				"algorithm": algo,
 			}); err != nil {
 				return fmt.Errorf("failed to configure PBKDF processor: %w", err)
+			}
+		}
+	}
+
+	// Configure JWT processor if selected
+	if choice == 10 { // JWT option
+		if configurable, ok := processor.(crypto.ConfigurableProcessor); ok {
+			algorithm := GetJWTAlgorithm()
+			if err := configurable.Configure(map[string]interface{}{
+				"algorithm": algorithm,
+			}); err != nil {
+				return fmt.Errorf("failed to configure JWT processor: %w", err)
+			}
+			// Get secret key for HS256
+			if algorithm == "HS256" {
+				fmt.Print("Enter secret key (default = my-secret-key): ")
+				secretKey := input.GetTextInput("my-secret-key")
+				if secretKey != "" {
+					if err := configurable.Configure(map[string]interface{}{
+						"secretKey": secretKey,
+					}); err != nil {
+						return fmt.Errorf("failed to configure JWT secret key: %w", err)
+					}
+				}
 			}
 		}
 	}
@@ -203,5 +227,27 @@ func GetPBKDFAlgorithm() string {
 	default:
 		fmt.Println("Invalid choice. Defaulting to Argon2id")
 		return "argon2id"
+	}
+}
+
+// GetJWTAlgorithm prompts user to select a JWT algorithm
+func GetJWTAlgorithm() string {
+	fmt.Println("\nSelect JWT Algorithm:")
+	fmt.Println("1. HS256 (HMAC with SHA-256)")
+	fmt.Println("2. RS256 (RSA with SHA-256)")
+	fmt.Println("3. EdDSA (Ed25519)")
+
+	choice := input.GetIntInput("Enter your choice (1-3): ", 1, 3)
+
+	switch choice {
+	case 1:
+		return "HS256"
+	case 2:
+		return "RS256"
+	case 3:
+		return "EdDSA"
+	default:
+		fmt.Println("Invalid choice. Defaulting to HS256")
+		return "HS256"
 	}
 }

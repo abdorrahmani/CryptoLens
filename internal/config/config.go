@@ -18,6 +18,7 @@ type Provider interface {
 	GetPBKDFConfig() PBKDFConfig
 	GetDHConfig() DHConfig
 	GetX25519Config() X25519Config
+	GetJWTConfig() JWTConfig
 	GetGeneralConfig() GeneralConfig
 	Save(path string) error
 }
@@ -79,6 +80,17 @@ type X25519Config struct {
 	SharedSecretFile string `yaml:"sharedSecretFile"`
 }
 
+// JWTConfig represents JWT-specific configuration
+type JWTConfig struct {
+	Algorithm             string   `yaml:"algorithm"`
+	KeyFile               string   `yaml:"keyFile"`
+	RSAPrivateKeyFile     string   `yaml:"rsaPrivateKeyFile"`
+	RSAPublicKeyFile      string   `yaml:"rsaPublicKeyFile"`
+	Ed25519PrivateKeyFile string   `yaml:"ed25519PrivateKeyFile"`
+	Ed25519PublicKeyFile  string   `yaml:"ed25519PublicKeyFile"`
+	AvailableAlgorithms   []string `yaml:"availableAlgorithms"`
+}
+
 // GeneralConfig represents general application settings
 type GeneralConfig struct {
 	LogLevel string `yaml:"logLevel"`
@@ -95,6 +107,7 @@ type Config struct {
 	PBKDF   PBKDFConfig   `yaml:"pbkdf"`
 	DH      DHConfig      `yaml:"dh"`
 	X25519  X25519Config  `yaml:"x25519"`
+	JWT     JWTConfig     `yaml:"jwt"`
 	General GeneralConfig `yaml:"general"`
 }
 
@@ -136,6 +149,11 @@ func (c *Config) GetDHConfig() DHConfig {
 // GetX25519Config returns the X25519 configuration
 func (c *Config) GetX25519Config() X25519Config {
 	return c.X25519
+}
+
+// GetJWTConfig returns the JWT configuration
+func (c *Config) GetJWTConfig() JWTConfig {
+	return c.JWT
 }
 
 // GetGeneralConfig returns the general configuration
@@ -236,6 +254,15 @@ func LoadConfig(configPath string) (*Config, error) {
 	config.X25519.PublicKeyFile = filepath.Join(keysDir, "x25519_public.bin")
 	config.X25519.SharedSecretFile = filepath.Join(keysDir, "x25519_shared.bin")
 
+	// Set JWT defaults
+	config.JWT.Algorithm = "HS256"
+	config.JWT.KeyFile = filepath.Join(keysDir, "jwt_key.bin")
+	config.JWT.RSAPrivateKeyFile = filepath.Join(keysDir, "jwt_rsa_private.pem")
+	config.JWT.RSAPublicKeyFile = filepath.Join(keysDir, "jwt_rsa_public.pem")
+	config.JWT.Ed25519PrivateKeyFile = filepath.Join(keysDir, "jwt_ed25519_private.bin")
+	config.JWT.Ed25519PublicKeyFile = filepath.Join(keysDir, "jwt_ed25519_public.bin")
+	config.JWT.AvailableAlgorithms = []string{"HS256", "RS256", "EdDSA"}
+
 	return &config, nil
 }
 
@@ -306,6 +333,15 @@ func createDefaultConfig() *Config {
 	config.X25519.PrivateKeyFile = filepath.Join(keysDir, "x25519_private.bin")
 	config.X25519.PublicKeyFile = filepath.Join(keysDir, "x25519_public.bin")
 	config.X25519.SharedSecretFile = filepath.Join(keysDir, "x25519_shared.bin")
+
+	// Set JWT defaults
+	config.JWT.Algorithm = "HS256"
+	config.JWT.KeyFile = filepath.Join(keysDir, "jwt_key.bin")
+	config.JWT.RSAPrivateKeyFile = filepath.Join(keysDir, "jwt_rsa_private.pem")
+	config.JWT.RSAPublicKeyFile = filepath.Join(keysDir, "jwt_rsa_public.pem")
+	config.JWT.Ed25519PrivateKeyFile = filepath.Join(keysDir, "jwt_ed25519_private.bin")
+	config.JWT.Ed25519PublicKeyFile = filepath.Join(keysDir, "jwt_ed25519_public.bin")
+	config.JWT.AvailableAlgorithms = []string{"HS256", "RS256", "EdDSA"}
 
 	// Set General defaults
 	config.General.LogLevel = "info"

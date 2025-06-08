@@ -35,6 +35,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(7, createPBKDFProcessor)
 	factory.RegisterProcessor(8, createDHProcessor)
 	factory.RegisterProcessor(9, createX25519Processor)
+	factory.RegisterProcessor(10, createJWTProcessor)
 
 	return factory
 }
@@ -181,6 +182,20 @@ func createX25519Processor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure X25519 processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createJWTProcessor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewJWTProcessor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"algorithm": cfg.GetJWTConfig().Algorithm,
+			"keyFile":   cfg.GetJWTConfig().KeyFile,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure JWT processor: %w", err)
 		}
 	}
 	return processor, nil

@@ -59,6 +59,19 @@ x25519:
   publicKeyFile: "x25519_public.bin"    # File to store public key
   sharedSecretFile: "x25519_shared.bin" # File to store shared secret
 
+# JWT Settings
+jwt:
+  algorithm: "HS256"  # Algorithm to use (HS256, RS256, EdDSA)
+  keyFile: "jwt_key.bin"  # File to store HMAC key
+  rsaPrivateKeyFile: "jwt_rsa_private.pem"  # File to store RSA private key
+  rsaPublicKeyFile: "jwt_rsa_public.pem"  # File to store RSA public key
+  ed25519PrivateKeyFile: "jwt_ed25519_private.bin"  # File to store Ed25519 private key
+  ed25519PublicKeyFile: "jwt_ed25519_public.bin"  # File to store Ed25519 public key
+  availableAlgorithms:  # List of available algorithms
+    - "HS256"
+    - "RS256"
+    - "EdDSA"
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)

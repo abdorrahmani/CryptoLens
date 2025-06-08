@@ -31,10 +31,10 @@ func (i *ConsoleInput) GetChoice() (int, error) {
 	i.scanner.Scan()
 	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
 	if err != nil {
-		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 10")
+		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 11")
 	}
-	if choice < 1 || choice > 10 {
-		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 10")
+	if choice < 1 || choice > 11 {
+		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 11")
 	}
 	return choice, nil
 }
