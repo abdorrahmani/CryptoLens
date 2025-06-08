@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -94,6 +95,54 @@ func (p *JWTProcessor) encodeJWT(text string, v *utils.Visualizer) (string, []st
 	if err != nil {
 		return "", nil, err
 	}
+
+	// Add educational information based on algorithm
+	v.AddStep("JWT Algorithm Information:")
+	switch p.algorithm {
+	case "HS256":
+		v.AddStep("HMAC-SHA256 (Symmetric Key)")
+		v.AddStep("Uses a single secret key for both signing and verification")
+		v.AddStep("Key length: 256 bits (32 bytes)")
+		if key, ok := signingKey.([]byte); ok {
+			hash := sha256.Sum256(key)
+			v.AddStep(fmt.Sprintf("HMAC Key Digest (SHA-256): %x", hash))
+		}
+		v.AddStep("Security: Key must be kept secret and shared securely")
+		v.AddStep("Use case: Single-party applications or trusted environments")
+	case "RS256":
+		v.AddStep("RSA-SHA256 (Asymmetric Key)")
+		v.AddStep("Uses public/private key pair")
+		v.AddStep("Private key for signing, public key for verification")
+		if key, ok := signingKey.(*rsa.PrivateKey); ok {
+			// Save public key to PEM for educational purposes
+			pubBytes := x509.MarshalPKCS1PublicKey(&key.PublicKey)
+			pubPEM := pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: pubBytes,
+			})
+			v.AddStep("Public Key (PEM format):")
+			v.AddStep(string(pubPEM))
+			v.AddStep("Token Validation:")
+			v.AddStep("1. Extract the token header and payload")
+			v.AddStep("2. Verify the signature using the public key")
+			v.AddStep("3. Check the token expiration and other claims")
+		}
+		v.AddStep("Security: Private key must be kept secure, public key can be shared")
+		v.AddStep("Use case: Multi-party applications, API authentication")
+	case "EdDSA":
+		v.AddStep("EdDSA with Ed25519 (Asymmetric Key)")
+		v.AddStep("Uses Ed25519 curve for digital signatures")
+		v.AddStep("Optimized for speed and security")
+		v.AddStep("Key length: 32 bytes (256 bits)")
+		v.AddStep("Unlike RSA, EdDSA:")
+		v.AddStep("- Does not use modulus/exponent math")
+		v.AddStep("- Has constant-time operations")
+		v.AddStep("- Provides better performance")
+		v.AddStep("- Has smaller key sizes")
+		v.AddStep("Security: Private key must be kept secure, public key can be shared")
+		v.AddStep("Use case: High-performance applications, modern APIs")
+	}
+	v.AddSeparator()
 
 	// Sign the token
 	tokenString, err := token.SignedString(signingKey)
