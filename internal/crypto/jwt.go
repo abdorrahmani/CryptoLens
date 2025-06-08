@@ -41,7 +41,13 @@ func (p *JWTProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	if algorithm, ok := config["algorithm"].(string); ok {
-		p.algorithm = algorithm
+		// Validate algorithm
+		switch algorithm {
+		case "HS256", "RS256", "EdDSA":
+			p.algorithm = algorithm
+		default:
+			return fmt.Errorf("unsupported algorithm: %s", algorithm)
+		}
 	}
 
 	if keyFile, ok := config["keyFile"].(string); ok {
@@ -266,12 +272,13 @@ func (p *JWTProcessor) decodeJWT(tokenString string, v *utils.Visualizer) (strin
 	if err != nil {
 		v.AddStep("❌ Signature Verification Failed:")
 		v.AddStep(fmt.Sprintf("Error: %v", err))
-	} else if token.Valid {
-		v.AddStep("✅ Signature Verification Successful")
-	} else {
+		return "", v.GetSteps(), err
+	} else if !token.Valid {
 		v.AddStep("❌ Token Invalid")
+		return "", v.GetSteps(), fmt.Errorf("token is invalid")
 	}
 
+	v.AddStep("✅ Signature Verification Successful")
 	v.AddSeparator()
 	v.AddStep("Token Signature:")
 	v.AddStep(fmt.Sprintf("Algorithm: %s", p.algorithm))
