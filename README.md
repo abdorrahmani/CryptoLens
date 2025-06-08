@@ -397,15 +397,6 @@ go build -o cryptolens cmd/cryptolens/main.go
 - Add examples
 - Follow security guidelines
 
-## 📚 Additional Resources
-
-- [Cryptography Documentation](https://docs.cryptolens.dev)
-- [Security Best Practices](https://docs.cryptolens.dev/security)
-- [API Reference](https://pkg.go.dev/github.com/abdorrahmani/cryptolens)
-- [Tutorials](https://docs.cryptolens.dev/tutorials)
-- [Blog Posts](https://blog.cryptolens.dev)
-- [Video Tutorials](https://youtube.com/cryptolens)
-
 ## 📊 Performance
 
 ### HMAC Benchmark Results

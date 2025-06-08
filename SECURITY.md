@@ -4,10 +4,46 @@
 
 We currently support the following versions with security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.1.x   | :white_check_mark: |
-| 1.0.x   | :white_check_mark: |
+| Version | Supported          | Security Status |
+| ------- | ------------------ | --------------- |
+| 1.3.0   | :white_check_mark: | Active          |
+| 1.2.1   | :white_check_mark: | Active          |
+| 1.2.0   | :white_check_mark: | Active          |
+| 1.1.0   | :white_check_mark: | Active          |
+| 1.0.0   | :white_check_mark: | Active          |
+
+### Version Support Details
+
+- **1.3.0**: Latest version with all security features
+  - Authenticated key exchange
+  - X25519 implementation
+  - JWT security enhancements
+  - MITM prevention measures
+  - Enhanced signature verification
+
+- **1.2.1**: Security patches and bug fixes
+  - Fixed HMAC and PBKDF error handling
+  - Improved parameter validation
+  - Enhanced error messages
+  - Better security logging
+
+- **1.2.0**: Major security improvements
+  - Enhanced key management
+  - Improved RSA implementation
+  - Better AES key handling
+  - Enhanced HMAC security
+
+- **1.1.0**: Security feature additions
+  - Added PBKDF2 support
+  - Enhanced RSA key generation
+  - Improved AES implementation
+  - Better key storage security
+
+- **1.0.0**: Initial release
+  - Basic encryption features
+  - Standard security measures
+  - Core cryptographic functions
+  - Initial key management
 
 ## Reporting a Vulnerability
 
@@ -37,6 +73,9 @@ This information will help us triage your report more quickly.
 - Regular security audits are performed
 - Dependencies are regularly updated to patch known vulnerabilities
 - Static code analysis tools are used to identify potential security issues
+- Automated security scanning in CI/CD pipeline
+- Regular penetration testing
+- Code signing for releases
 
 ### Data Security
 - Sensitive data is encrypted at rest
@@ -46,6 +85,8 @@ This information will help us triage your report more quickly.
 - RSA keys are stored with proper file permissions (0600 for private keys)
 - AES keys are stored securely in binary format
 - All encryption keys are stored in a dedicated `keys` directory
+- Key rotation policies are enforced
+- Secure key backup procedures
 
 ### Key Management
 - RSA key pairs are generated with 2048-bit minimum key size
@@ -55,6 +96,9 @@ This information will help us triage your report more quickly.
 - Automatic key generation with secure random number generation
 - Key files are stored in PEM format for RSA keys
 - Cross-platform key storage compatibility
+- Regular key rotation schedule
+- Secure key backup and recovery procedures
+- Key usage monitoring and logging
 
 ### Access Control
 - Principle of least privilege is followed
@@ -62,6 +106,9 @@ This information will help us triage your report more quickly.
 - Regular access reviews are conducted
 - Session management and timeout policies are enforced
 - File system permissions are properly set for key storage
+- Role-based access control (RBAC)
+- Regular security training for contributors
+- Incident response procedures
 
 ## Security Updates
 
@@ -73,6 +120,8 @@ Security updates will be released as soon as possible after a vulnerability is c
 4. Testing the fix
 5. Releasing the update
 6. Notifying users about the security update
+7. Publishing security advisories
+8. Updating documentation
 
 ## Best Practices
 
@@ -87,6 +136,11 @@ We recommend following these security best practices:
 7. Use the latest version of CryptoLens
 8. Regularly rotate encryption keys
 9. Monitor the `keys` directory for unauthorized changes
+10. Follow secure coding guidelines
+11. Implement proper error handling
+12. Use secure communication channels
+13. Regular security audits
+14. Keep security documentation updated
 
 ## Contact
 
