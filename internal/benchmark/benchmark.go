@@ -215,6 +215,25 @@ func displayHMACResults(v *utils.Visualizer, results []struct {
 		))
 	}
 
+	// Add ASCII art visualization
+	v.AddSeparator()
+	v.AddStep("Benchmark Visual Comparison:")
+
+	// Calculate the scale factor for visualization
+	maxChars := 50
+	scaleFactor := float64(maxChars) / float64(results[len(results)-1].duration.Milliseconds())
+
+	for _, result := range results {
+		avgTime := float64(result.duration.Microseconds()) / float64(iterations)
+		barLength := int(float64(result.duration.Milliseconds()) * scaleFactor)
+		bar := strings.Repeat("█", barLength)
+		// Add background color and spacing
+		v.AddStep(fmt.Sprintf("\033[32m%-15s \033[40m%s\033[0m\033[32m (%.1fµs)\033[0m",
+			"HMAC-"+strings.ToUpper(result.name),
+			bar,
+			avgTime))
+	}
+
 	v.AddSeparator()
 	v.AddStep("Recommendations:")
 	v.AddStep("🚀 Fastest Algorithm: " + strings.ToUpper(results[0].name))
@@ -256,6 +275,25 @@ func displayPBKDFResults(v *utils.Visualizer, results []struct {
 			avgTime/1000,
 			diffStr,
 		))
+	}
+
+	// Add ASCII art visualization
+	v.AddSeparator()
+	v.AddStep("Benchmark Visual Comparison:")
+
+	// Calculate the scale factor for visualization
+	maxChars := 50
+	scaleFactor := float64(maxChars) / float64(results[len(results)-1].duration.Milliseconds())
+
+	for _, result := range results {
+		avgTime := float64(result.duration.Microseconds()) / float64(iterations) / 1000 // Convert to ms
+		barLength := int(float64(result.duration.Milliseconds()) * scaleFactor)
+		bar := strings.Repeat("█", barLength)
+		// Add background color and spacing
+		v.AddStep(fmt.Sprintf("\033[32m%-10s \033[40m%s\033[0m\033[32m (%.1fms)\033[0m",
+			strings.ToUpper(result.name),
+			bar,
+			avgTime))
 	}
 
 	v.AddSeparator()
