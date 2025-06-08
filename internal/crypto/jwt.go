@@ -341,7 +341,7 @@ func (p *JWTProcessor) getSigningKey() (interface{}, error) {
 			// Save public key
 			pubBytes := x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
 			pubPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: pubBytes})
-			if err := os.WriteFile(pubFile, pubPEM, 0644); err != nil {
+			if err := os.WriteFile(pubFile, pubPEM, 0600); err != nil {
 				return nil, fmt.Errorf("failed to save public key: %w", err)
 			}
 			return privateKey, nil
@@ -384,7 +384,7 @@ func (p *JWTProcessor) getSigningKey() (interface{}, error) {
 				Type:  "ED25519 PUBLIC KEY",
 				Bytes: publicKey,
 			})
-			if err := os.WriteFile(pubFile, pubPEM, 0644); err != nil {
+			if err := os.WriteFile(pubFile, pubPEM, 0600); err != nil {
 				return nil, fmt.Errorf("failed to save public key: %w", err)
 			}
 

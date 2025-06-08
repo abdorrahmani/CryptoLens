@@ -269,8 +269,12 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	x25519Start := time.Now()
 	alicePrivateX := make([]byte, 32)
 	bobPrivateX := make([]byte, 32)
-	rand.Read(alicePrivateX)
-	rand.Read(bobPrivateX)
+	if _, err := rand.Read(alicePrivateX); err != nil {
+		return "", nil, fmt.Errorf("failed to generate Alice's private key: %w", err)
+	}
+	if _, err := rand.Read(bobPrivateX); err != nil {
+		return "", nil, fmt.Errorf("failed to generate Bob's private key: %w", err)
+	}
 	alicePrivateX[0] &= 248
 	alicePrivateX[31] &= 127
 	alicePrivateX[31] |= 64
