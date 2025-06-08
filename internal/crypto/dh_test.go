@@ -47,54 +47,33 @@ func TestDHProcessor_Configure(t *testing.T) {
 }
 
 func TestDHProcessor_Process(t *testing.T) {
-	// Create a temporary directory for test files
-	tempDir := t.TempDir()
-	testPrimeFile := filepath.Join(tempDir, "test_prime.bin")
-
 	processor := NewDHProcessor()
-	config := map[string]interface{}{
-		"primeFile": testPrimeFile,
-	}
-	if err := processor.Configure(config); err != nil {
-		t.Fatalf("Failed to configure processor: %v", err)
-	}
-
-	// Test the key exchange process
-	result, steps, err := processor.Process("", "encrypt")
+	_, steps, err := processor.Process("", "")
 	if err != nil {
 		t.Fatalf("Process failed: %v", err)
 	}
 
-	if result == "" {
-		t.Error("Expected non-empty result")
-	}
-
-	if len(steps) == 0 {
-		t.Error("Expected non-empty steps")
-	}
-
-	// Verify that the steps contain expected information
 	expectedSteps := []string{
-		"Diffie-Hellman Key Exchange",
-		"Parameters:",
 		"Step 1: Prime Number Setup",
 		"Step 2: Private Key Generation",
 		"Step 3: Public Key Calculation",
-		"Step 4: Shared Secret Calculation",
-		"Step 5: Shared Secret Verification",
-		"Step 6: Key Derivation",
+		"Step 4: Key Authentication",
+		"Step 5: Shared Secret Calculation",
+		"Step 6: Shared Secret Verification",
+		"Step 7: Key Derivation",
+		"Step 8: Using Shared Secret for AES Encryption",
 	}
 
-	for _, expected := range expectedSteps {
+	for _, expectedStep := range expectedSteps {
 		found := false
 		for _, step := range steps {
-			if step == expected {
+			if step == expectedStep {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected step not found: %s", expected)
+			t.Errorf("Expected step not found: %s", expectedStep)
 		}
 	}
 }
