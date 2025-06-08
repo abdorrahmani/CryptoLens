@@ -53,6 +53,12 @@ dh:
   publicKeyFile: "dh_public.bin"  # File to store public key
   sharedSecretFile: "dh_shared.bin"  # File to store shared secret
 
+# X25519 Settings
+x25519:
+  privateKeyFile: "x25519_private.bin"  # File to store private key
+  publicKeyFile: "x25519_public.bin"    # File to store public key
+  sharedSecretFile: "x25519_shared.bin" # File to store shared secret
+
 # General Settings
 general:
   logLevel: "info"  # Log level (debug, info, warn, error)

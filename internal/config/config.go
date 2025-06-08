@@ -17,6 +17,7 @@ type Provider interface {
 	GetHMACConfig() HMACConfig
 	GetPBKDFConfig() PBKDFConfig
 	GetDHConfig() DHConfig
+	GetX25519Config() X25519Config
 	GetGeneralConfig() GeneralConfig
 	Save(path string) error
 }
@@ -71,6 +72,13 @@ type DHConfig struct {
 	SharedSecretFile string `yaml:"sharedSecretFile"`
 }
 
+// X25519Config represents X25519-specific configuration
+type X25519Config struct {
+	PrivateKeyFile   string `yaml:"privateKeyFile"`
+	PublicKeyFile    string `yaml:"publicKeyFile"`
+	SharedSecretFile string `yaml:"sharedSecretFile"`
+}
+
 // GeneralConfig represents general application settings
 type GeneralConfig struct {
 	LogLevel string `yaml:"logLevel"`
@@ -86,6 +94,7 @@ type Config struct {
 	HMAC    HMACConfig    `yaml:"hmac"`
 	PBKDF   PBKDFConfig   `yaml:"pbkdf"`
 	DH      DHConfig      `yaml:"dh"`
+	X25519  X25519Config  `yaml:"x25519"`
 	General GeneralConfig `yaml:"general"`
 }
 
@@ -122,6 +131,11 @@ func (c *Config) GetPBKDFConfig() PBKDFConfig {
 // GetDHConfig returns the Diffie-Hellman configuration
 func (c *Config) GetDHConfig() DHConfig {
 	return c.DH
+}
+
+// GetX25519Config returns the X25519 configuration
+func (c *Config) GetX25519Config() X25519Config {
+	return c.X25519
 }
 
 // GetGeneralConfig returns the general configuration
@@ -217,6 +231,11 @@ func LoadConfig(configPath string) (*Config, error) {
 	config.DH.PublicKeyFile = filepath.Join(keysDir, "dh_public.bin")
 	config.DH.SharedSecretFile = filepath.Join(keysDir, "dh_shared.bin")
 
+	// Set X25519 defaults
+	config.X25519.PrivateKeyFile = filepath.Join(keysDir, "x25519_private.bin")
+	config.X25519.PublicKeyFile = filepath.Join(keysDir, "x25519_public.bin")
+	config.X25519.SharedSecretFile = filepath.Join(keysDir, "x25519_shared.bin")
+
 	return &config, nil
 }
 
@@ -282,6 +301,11 @@ func createDefaultConfig() *Config {
 	config.DH.PrivateKeyFile = filepath.Join(keysDir, "dh_private.bin")
 	config.DH.PublicKeyFile = filepath.Join(keysDir, "dh_public.bin")
 	config.DH.SharedSecretFile = filepath.Join(keysDir, "dh_shared.bin")
+
+	// Set X25519 defaults
+	config.X25519.PrivateKeyFile = filepath.Join(keysDir, "x25519_private.bin")
+	config.X25519.PublicKeyFile = filepath.Join(keysDir, "x25519_public.bin")
+	config.X25519.SharedSecretFile = filepath.Join(keysDir, "x25519_shared.bin")
 
 	// Set General defaults
 	config.General.LogLevel = "info"
