@@ -25,7 +25,7 @@ func NewConsoleDisplay() *ConsoleDisplay {
 
 // ShowMenu displays the main menu
 func (d *ConsoleDisplay) ShowMenu() {
-	fmt.Printf("\n%s\n", d.theme.Format("CryptoLens - Choose an encryption method:", "bold cyan"))
+	fmt.Printf("\n%s\n", d.theme.Format("CryptoLens - Choose an encryption method:", "cyan"))
 	fmt.Printf("%s\n", d.theme.Format("1. Base64 Encoding", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("2. Caesar Cipher", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("3. AES Encryption", "yellow"))
@@ -42,10 +42,10 @@ func (d *ConsoleDisplay) ShowMenu() {
 
 // ShowResult displays the processing result and steps
 func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
-	fmt.Printf("\n%s\n", d.theme.Format("Result:", "bold brightGreen"))
+	fmt.Printf("\n%s\n", d.theme.Format("Result:", "brightGreen"))
 	fmt.Printf("%s\n", d.theme.Format(result, "brightGreen"))
 
-	fmt.Printf("\n%s\n", d.theme.Format("Processing Steps:", "bold brightCyan"))
+	fmt.Printf("\n%s\n", d.theme.Format("Processing Steps:", "brightCyan"))
 
 	// Create sections
 	sections := map[string][]string{
@@ -129,18 +129,18 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 					}
 				}
 			}
-			fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
+			fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
 		}
 	}
 }
 
 // ShowError displays an error message
 func (d *ConsoleDisplay) ShowError(err error) {
-	fmt.Printf("\n%s %s\n", d.theme.Format("Error:", "bold brightRed"), d.theme.Format(err.Error(), "red"))
+	fmt.Printf("\n%s %s\n", d.theme.Format("Error:", "brightRed"), d.theme.Format(err.Error(), "red"))
 	if err.Error() == "invalid base64 string: illegal base64 data at input byte 0" {
-		fmt.Printf("%s\n", d.theme.Format("Note: For AES decryption, please enter the previously encrypted text in base64 format", "dim yellow"))
+		fmt.Printf("%s\n", d.theme.Format("Note: For AES decryption, please enter the previously encrypted text in base64 format", "yellow"))
 	}
-	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
+	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
 }
 
 // ShowWelcome displays the welcome message
@@ -154,7 +154,7 @@ func (d *ConsoleDisplay) ShowWelcome() {
             |___/|_|                                                                
 `
 	fmt.Printf("%s\n", d.theme.Format(asciiArt, "blue"))
-	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "bold brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "dim"))
+	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "brightRed"))
 	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "white"))
 	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
 }
@@ -168,7 +168,7 @@ func (d *ConsoleDisplay) ShowGoodbye() {
 // ShowMessage displays the prompt for user input
 func (d *ConsoleDisplay) ShowMessage(message string) {
 	if message == "aes_decrypt" {
-		fmt.Printf("\n%s", d.theme.Format("Enter the encrypted text (in base64 format): ", "brightGreen bold"))
+		fmt.Printf("\n%s", d.theme.Format("Enter the encrypted text (in base64 format): ", "brightGreen"))
 	} else {
 		fmt.Printf("\n%s", d.theme.Format(message, "brightGreen bold"))
 	}
@@ -176,14 +176,14 @@ func (d *ConsoleDisplay) ShowMessage(message string) {
 
 // ShowProcessingMessage displays the message being processed
 func (d *ConsoleDisplay) ShowProcessingMessage(message string) {
-	fmt.Printf("\n%s %s\n", d.theme.Format("Processing message:", "bold brightPurple"), d.theme.Format(message, "purple"))
-	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
+	fmt.Printf("\n%s %s\n", d.theme.Format("Processing message:", "brightPurple"), d.theme.Format(message, "purple"))
+	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
 }
 
 // ShowOperationPrompt displays the operation selection prompt
 func (d *ConsoleDisplay) ShowOperationPrompt() {
-	fmt.Printf("\n%s\n", d.theme.Format("Choose operation:", "bold brightCyan"))
-	fmt.Printf("%s\n", d.theme.Format("1. Encrypt", "brightYellow bold"))
-	fmt.Printf("%s\n", d.theme.Format("2. Decrypt", "brightYellow bold"))
-	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-2): ", "brightGreen bold"))
+	fmt.Printf("\n%s\n", d.theme.Format("Choose operation:", "brightCyan"))
+	fmt.Printf("%s\n", d.theme.Format("1. Encrypt", "brightYellow"))
+	fmt.Printf("%s\n", d.theme.Format("2. Decrypt", "brightYellow"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-2): ", "brightGreen"))
 }
