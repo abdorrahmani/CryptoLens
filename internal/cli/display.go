@@ -145,15 +145,24 @@ func (d *ConsoleDisplay) ShowError(err error) {
 
 // ShowWelcome displays the welcome message
 func (d *ConsoleDisplay) ShowWelcome() {
+	asciiArt := `
+  ____                  _        _                   
+ / ___|_ __ _   _ _ __ | |_ ___ | |    ___ _ __  ___ 
+| |   | '__| | | | '_ \| __/ _ \| |   / _ | '_ \/ __|
+| |___| |  | |_| | |_) | || (_) | |__|  __| | | \__ \
+ \____|_|   \__, | .__/ \__\___/|_____\___|_| |_|___/
+            |___/|_|                                                                
+`
+	fmt.Printf("%s\n", d.theme.Format(asciiArt, "blue"))
 	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "bold brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "dim"))
-	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "dim white"))
-	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "dim blue"))
+	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "white"))
+	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
 }
 
 // ShowGoodbye displays the goodbye message
 func (d *ConsoleDisplay) ShowGoodbye() {
-	fmt.Printf("\n%s\n", d.theme.Format("Thank you for using CryptoLens!", "brightCyan bold"))
-	fmt.Printf("%s\n", d.theme.Format("Goodbye!", "brightCyan bold"))
+	fmt.Printf("\n%s\n", d.theme.Format("Thank you for using CryptoLens!", "brightCyan"))
+	fmt.Printf("%s\n", d.theme.Format("Goodbye!", "brightCyan"))
 }
 
 // ShowMessage displays the prompt for user input
