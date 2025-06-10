@@ -438,6 +438,11 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 			v.AddStep("❌ This modification will cause authentication to fail!")
 			v.AddStep("Original Ciphertext (hex): " + hex.EncodeToString([]byte{originalByte}))
 			v.AddStep("Modified Ciphertext (hex): " + hex.EncodeToString([]byte{actualCiphertext[byteIndex]}))
+			// Reconstruct the ciphertext with the modified data
+			ciphertext = append(actualCiphertext, tag...)
+			v.AddStep("Modified Data:")
+			v.AddStep("-------------")
+			v.AddHexStep("Modified Ciphertext", ciphertext)
 		}
 	case "3":
 		// Corrupt the tag
@@ -452,20 +457,16 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 			v.AddStep("❌ This corruption will cause authentication to fail!")
 			v.AddStep("Original Tag (hex): " + hex.EncodeToString(originalTag[:1]))
 			v.AddStep("Modified Tag (hex): " + hex.EncodeToString(tag[:1]))
+			// Reconstruct the ciphertext with the modified tag
+			ciphertext = append(actualCiphertext, tag...)
+			v.AddStep("Modified Data:")
+			v.AddStep("-------------")
+			v.AddHexStep("Modified Ciphertext", ciphertext)
 		}
 	default:
 		v.AddStep("✅ No tampering simulated")
 	}
 	v.AddSeparator()
-
-	// Reconstruct the modified ciphertext if tampering was performed
-	if choice == "2" || choice == "3" {
-		ciphertext = append(actualCiphertext, tag...)
-		v.AddStep("Modified Data:")
-		v.AddStep("-------------")
-		v.AddHexStep("Modified Ciphertext", ciphertext)
-		v.AddSeparator()
-	}
 
 	// Ask for key input preference
 	v.AddStep("Step 4: Key Management")
@@ -572,7 +573,7 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 		}
 		v.AddStep("This is expected behavior for authenticated encryption")
 		v.AddStep("It ensures that any modification to the encrypted data is detected")
-		return "", v.GetSteps(), nil // Return steps instead of error
+		return "", v.GetSteps(), fmt.Errorf("message authentication failed: %w", err)
 	}
 
 	// Show decrypted text
