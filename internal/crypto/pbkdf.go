@@ -47,7 +47,7 @@ func (p *PBKDFProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	// Configure key file if provided
-	keyFile := "pbkdf_key.bin"
+	keyFile := "keys/pbkdf_key.bin"
 	if kf, ok := config["keyFile"].(string); ok {
 		keyFile = kf
 	}

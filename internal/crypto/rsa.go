@@ -33,6 +33,11 @@ func (p *RSAProcessor) Configure(config map[string]interface{}) error {
 		return err
 	}
 
+	// Ensure keys directory exists
+	if err := os.MkdirAll("keys", 0700); err != nil {
+		return fmt.Errorf("failed to create keys directory: %w", err)
+	}
+
 	// Configure key size if provided
 	if keySize, ok := config["keySize"].(int); ok {
 		switch keySize {
@@ -44,8 +49,8 @@ func (p *RSAProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	// Get key file paths
-	publicKeyFile := "rsa_public.pem"
-	privateKeyFile := "rsa_private.pem"
+	publicKeyFile := "keys/rsa_public.pem"
+	privateKeyFile := "keys/rsa_private.pem"
 	if pub, ok := config["publicKeyFile"].(string); ok {
 		publicKeyFile = pub
 	}

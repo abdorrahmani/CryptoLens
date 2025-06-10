@@ -307,10 +307,15 @@ func (p *JWTProcessor) getSigningMethod() jwt.SigningMethod {
 }
 
 func (p *JWTProcessor) getSigningKey() (interface{}, error) {
+	// Ensure keys directory exists
+	if err := os.MkdirAll("keys", 0700); err != nil {
+		return nil, fmt.Errorf("failed to create keys directory: %w", err)
+	}
+
 	switch p.algorithm {
 	case "HS256":
 		if p.keyManager == nil {
-			p.keyManager = NewFileKeyManager(256, "jwt_key.bin")
+			p.keyManager = NewFileKeyManager(256, "keys/jwt_key.bin")
 		}
 		if err := p.keyManager.LoadOrGenerateKey(); err != nil {
 			return nil, fmt.Errorf("failed to load/generate HMAC key: %w", err)
@@ -322,8 +327,8 @@ func (p *JWTProcessor) getSigningKey() (interface{}, error) {
 		return p.keyManager.GetKey(), nil
 
 	case "RS256":
-		privFile := "jwt_rsa_private.pem"
-		pubFile := "jwt_rsa_public.pem"
+		privFile := "keys/jwt_rsa_private.pem"
+		pubFile := "keys/jwt_rsa_public.pem"
 		// Try to load existing private key
 		privData, err := os.ReadFile(privFile)
 		if err != nil {
@@ -358,8 +363,8 @@ func (p *JWTProcessor) getSigningKey() (interface{}, error) {
 		return privateKey, nil
 
 	case "EdDSA":
-		privFile := "jwt_ed25519_private.pem"
-		pubFile := "jwt_ed25519_public.pem"
+		privFile := "keys/jwt_ed25519_private.pem"
+		pubFile := "keys/jwt_ed25519_public.pem"
 
 		// Try to load existing private key
 		privData, err := os.ReadFile(privFile)
@@ -414,7 +419,7 @@ func (p *JWTProcessor) getVerificationKey() (interface{}, error) {
 		return p.getSigningKey()
 
 	case "RS256":
-		pubFile := "jwt_rsa_public.pem"
+		pubFile := "keys/jwt_rsa_public.pem"
 		pubData, err := os.ReadFile(pubFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read RSA public key: %w", err)
@@ -430,7 +435,7 @@ func (p *JWTProcessor) getVerificationKey() (interface{}, error) {
 		return publicKey, nil
 
 	case "EdDSA":
-		pubFile := "jwt_ed25519_public.pem"
+		pubFile := "keys/jwt_ed25519_public.pem"
 		pubData, err := os.ReadFile(pubFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read Ed25519 public key: %w", err)

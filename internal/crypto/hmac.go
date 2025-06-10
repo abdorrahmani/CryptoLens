@@ -46,7 +46,7 @@ func (p *HMACProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	// Configure key file if provided
-	keyFile := "hmac_key.bin"
+	keyFile := "keys/hmac_key.bin"
 	if kf, ok := config["keyFile"].(string); ok {
 		keyFile = kf
 	}

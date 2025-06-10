@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"os"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
@@ -28,6 +29,11 @@ func (p *AESProcessor) Configure(config map[string]interface{}) error {
 		return err
 	}
 
+	// Ensure keys directory exists
+	if err := os.MkdirAll("keys", 0700); err != nil {
+		return fmt.Errorf("failed to create keys directory: %w", err)
+	}
+
 	// Configure key size if provided
 	if keySize, ok := config["keySize"].(int); ok {
 		switch keySize {
@@ -39,7 +45,7 @@ func (p *AESProcessor) Configure(config map[string]interface{}) error {
 	}
 
 	// Configure key file if provided
-	keyFile := "aes_key.bin"
+	keyFile := "keys/aes_key.bin"
 	if kf, ok := config["keyFile"].(string); ok {
 		keyFile = kf
 	}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"os"
 	"time"
 
 	"golang.org/x/crypto/curve25519"
@@ -26,12 +27,17 @@ type X25519Processor struct {
 // NewX25519Processor creates a new X25519 processor
 func NewX25519Processor() *X25519Processor {
 	return &X25519Processor{
-		keyManager: NewFileKeyManager(32, "x25519_private.bin"), // 32 bytes for X25519 private key
+		keyManager: NewFileKeyManager(32, "keys/x25519_private.bin"), // 32 bytes for X25519 private key
 	}
 }
 
 // Configure configures the X25519 processor with the given settings
 func (p *X25519Processor) Configure(config map[string]interface{}) error {
+	// Ensure keys directory exists
+	if err := os.MkdirAll("keys", 0700); err != nil {
+		return fmt.Errorf("failed to create keys directory: %w", err)
+	}
+
 	if privateKeyFile, ok := config["privateKeyFile"].(string); ok {
 		p.keyManager = NewFileKeyManager(32, privateKeyFile)
 	} else if _, ok := config["privateKeyFile"]; ok {

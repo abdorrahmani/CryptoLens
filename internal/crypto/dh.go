@@ -32,7 +32,7 @@ func NewDHProcessor() *DHProcessor {
 	return &DHProcessor{
 		keySize:    2048,
 		generator:  big.NewInt(2),
-		keyManager: NewFileKeyManager(2048, "dh_prime.bin"),
+		keyManager: NewFileKeyManager(2048, "keys/dh_prime.bin"),
 	}
 }
 
