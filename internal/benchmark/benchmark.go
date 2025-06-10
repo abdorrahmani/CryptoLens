@@ -2,6 +2,7 @@ package benchmark
 
 import (
 	"fmt"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +11,33 @@ import (
 	"github.com/abdorrahmani/cryptolens/internal/input"
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
+
+// BenchmarkResult represents the result of a benchmark run
+type BenchmarkResult struct {
+	name         string
+	duration     time.Duration
+	memoryUsage  uint64
+	allocations  uint64
+	platformInfo PlatformInfo
+}
+
+// PlatformInfo contains information about the system running the benchmark
+type PlatformInfo struct {
+	OS           string
+	Architecture string
+	CPUCount     int
+	GoVersion    string
+}
+
+// getPlatformInfo returns information about the current platform
+func getPlatformInfo() PlatformInfo {
+	return PlatformInfo{
+		OS:           runtime.GOOS,
+		Architecture: runtime.GOARCH,
+		CPUCount:     runtime.NumCPU(),
+		GoVersion:    runtime.Version(),
+	}
+}
 
 // RunHMACBenchmark runs a benchmark of all HMAC algorithms
 func RunHMACBenchmark() (string, []string, error) {
@@ -125,14 +153,9 @@ func runAlgorithmBenchmark(
 	text string,
 	iterations int,
 	createProcessor func(string) (crypto.Processor, error),
-) []struct {
-	name     string
-	duration time.Duration
-} {
-	results := make([]struct {
-		name     string
-		duration time.Duration
-	}, len(algorithms))
+) []BenchmarkResult {
+	results := make([]BenchmarkResult, len(algorithms))
+	platformInfo := getPlatformInfo()
 
 	done := make(chan bool)
 	go showLoadingAnimation(done)
@@ -149,6 +172,12 @@ func runAlgorithmBenchmark(
 			return nil
 		}
 
+		// Reset memory stats
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		startAllocs := m.TotalAlloc
+		startMemory := m.Alloc
+
 		start := time.Now()
 		for j := 0; j < iterations; j++ {
 			if _, _, err := processor.Process(text, "encrypt"); err != nil {
@@ -157,10 +186,19 @@ func runAlgorithmBenchmark(
 			}
 		}
 		duration := time.Since(start)
-		results[i] = struct {
-			name     string
-			duration time.Duration
-		}{algo, duration}
+
+		// Get final memory stats
+		runtime.ReadMemStats(&m)
+		memoryUsage := m.Alloc - startMemory
+		allocations := m.TotalAlloc - startAllocs
+
+		results[i] = BenchmarkResult{
+			name:         algo,
+			duration:     duration,
+			memoryUsage:  memoryUsage,
+			allocations:  allocations,
+			platformInfo: platformInfo,
+		}
 	}
 
 	done <- true
@@ -187,16 +225,23 @@ func showLoadingAnimation(done chan bool) {
 	}
 }
 
-func displayHMACResults(v *utils.Visualizer, results []struct {
-	name     string
-	duration time.Duration
-}, iterations int) {
+func displayHMACResults(v *utils.Visualizer, results []BenchmarkResult, iterations int) {
 	fastestDuration := results[0].duration
+
+	// Display platform information
+	v.AddStep("Platform Information:")
+	v.AddStep(fmt.Sprintf("OS: %s", results[0].platformInfo.OS))
+	v.AddStep(fmt.Sprintf("Architecture: %s", results[0].platformInfo.Architecture))
+	v.AddStep(fmt.Sprintf("CPU Cores: %d", results[0].platformInfo.CPUCount))
+	v.AddStep(fmt.Sprintf("Go Version: %s", results[0].platformInfo.GoVersion))
+	v.AddSeparator()
 
 	v.AddStep("Benchmark Results:")
 	for i, result := range results {
 		avgTime := float64(result.duration.Microseconds()) / float64(iterations)
 		percentageDiff := float64(result.duration) / float64(fastestDuration) * 100
+		memoryPerOp := float64(result.memoryUsage) / float64(iterations)
+		allocsPerOp := float64(result.allocations) / float64(iterations)
 
 		var diffStr string
 		if i == 0 {
@@ -205,14 +250,14 @@ func displayHMACResults(v *utils.Visualizer, results []struct {
 			diffStr = fmt.Sprintf(" (+%.1f%%)", percentageDiff-100)
 		}
 
-		v.AddStep(fmt.Sprintf("%d. HMAC-%s: %d ops in %dms → avg: %.1fµs%s",
-			i+1,
-			strings.ToUpper(result.name),
+		v.AddStep(fmt.Sprintf("%d. HMAC-%s:", i+1, strings.ToUpper(result.name)))
+		v.AddStep(fmt.Sprintf("   • Time: %d ops in %dms → avg: %.1fµs%s",
 			iterations,
 			result.duration.Milliseconds(),
 			avgTime,
-			diffStr,
-		))
+			diffStr))
+		v.AddStep(fmt.Sprintf("   • Memory: %.2f KB per operation", memoryPerOp/1024))
+		v.AddStep(fmt.Sprintf("   • Allocations: %.1f per operation", allocsPerOp))
 	}
 
 	// Add ASCII art visualization
@@ -238,6 +283,7 @@ func displayHMACResults(v *utils.Visualizer, results []struct {
 	v.AddStep("Recommendations:")
 	v.AddStep("🚀 Fastest Algorithm: " + strings.ToUpper(results[0].name))
 	v.AddStep("🛡️ Best Security (Balanced): BLAKE2b-512 or SHA-256")
+	v.AddStep("💾 Most Memory Efficient: " + strings.ToUpper(results[0].name))
 
 	v.AddSeparator()
 	v.AddStep("Performance Comparison:")
@@ -249,16 +295,23 @@ func displayHMACResults(v *utils.Visualizer, results []struct {
 		(float64(results[5].duration)/float64(results[0].duration)*100)-100))
 }
 
-func displayPBKDFResults(v *utils.Visualizer, results []struct {
-	name     string
-	duration time.Duration
-}, iterations int) {
+func displayPBKDFResults(v *utils.Visualizer, results []BenchmarkResult, iterations int) {
 	fastestDuration := results[0].duration
+
+	// Display platform information
+	v.AddStep("Platform Information:")
+	v.AddStep(fmt.Sprintf("OS: %s", results[0].platformInfo.OS))
+	v.AddStep(fmt.Sprintf("Architecture: %s", results[0].platformInfo.Architecture))
+	v.AddStep(fmt.Sprintf("CPU Cores: %d", results[0].platformInfo.CPUCount))
+	v.AddStep(fmt.Sprintf("Go Version: %s", results[0].platformInfo.GoVersion))
+	v.AddSeparator()
 
 	v.AddStep("Benchmark Results:")
 	for i, result := range results {
 		avgTime := float64(result.duration.Microseconds()) / float64(iterations)
 		percentageDiff := float64(result.duration) / float64(fastestDuration) * 100
+		memoryPerOp := float64(result.memoryUsage) / float64(iterations)
+		allocsPerOp := float64(result.allocations) / float64(iterations)
 
 		var diffStr string
 		if i == 0 {
@@ -267,14 +320,14 @@ func displayPBKDFResults(v *utils.Visualizer, results []struct {
 			diffStr = fmt.Sprintf(" (+%.1f%%)", percentageDiff-100)
 		}
 
-		v.AddStep(fmt.Sprintf("%d. %s: %d ops in %dms → avg: %.2fms%s",
-			i+1,
-			strings.ToUpper(result.name),
+		v.AddStep(fmt.Sprintf("%d. %s:", i+1, strings.ToUpper(result.name)))
+		v.AddStep(fmt.Sprintf("   • Time: %d ops in %dms → avg: %.2fms%s",
 			iterations,
 			result.duration.Milliseconds(),
 			avgTime/1000,
-			diffStr,
-		))
+			diffStr))
+		v.AddStep(fmt.Sprintf("   • Memory: %.2f MB per operation", memoryPerOp/1024/1024))
+		v.AddStep(fmt.Sprintf("   • Allocations: %.1f per operation", allocsPerOp))
 	}
 
 	// Add ASCII art visualization
@@ -300,6 +353,7 @@ func displayPBKDFResults(v *utils.Visualizer, results []struct {
 	v.AddStep("Recommendations:")
 	v.AddStep("🚀 Fastest Algorithm: " + strings.ToUpper(results[0].name))
 	v.AddStep("🛡️ Most Secure: Argon2id (Memory-hard function with better resistance to GPU attacks)")
+	v.AddStep("💾 Most Memory Efficient: " + strings.ToUpper(results[0].name))
 
 	v.AddSeparator()
 	v.AddStep("Performance Comparison:")
