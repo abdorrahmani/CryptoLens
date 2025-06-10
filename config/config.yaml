@@ -5,6 +5,13 @@ aes:
   defaultKeySize: 256  # Key size in bits (128, 192, or 256)
   keyFile: "aes_key.bin"  # File to store AES keys
 
+# ChaCha20-Poly1305 Settings
+chacha20poly1305:
+  keySize: 256  # Key size in bits (must be 256)
+  keyFile: "chacha20poly1305_key.bin"  # File to store key
+  nonceSize: 12  # Nonce size in bytes (must be 12)
+  tagSize: 16  # Authentication tag size in bytes (must be 16)
+
 # Base64 Settings
 base64:
   paddingChar: "="  # Character used for padding

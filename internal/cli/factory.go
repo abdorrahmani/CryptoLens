@@ -36,6 +36,7 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(8, createDHProcessor)
 	factory.RegisterProcessor(9, createX25519Processor)
 	factory.RegisterProcessor(10, createJWTProcessor)
+	factory.RegisterProcessor(11, createChaCha20Poly1305Processor)
 
 	return factory
 }
@@ -196,6 +197,22 @@ func createJWTProcessor(cfg *config.Config) (crypto.Processor, error) {
 		}
 		if err := processor.Configure(config); err != nil {
 			return nil, fmt.Errorf("failed to configure JWT processor: %w", err)
+		}
+	}
+	return processor, nil
+}
+
+func createChaCha20Poly1305Processor(cfg *config.Config) (crypto.Processor, error) {
+	processor := crypto.NewChaCha20Poly1305Processor()
+	if cfg != nil {
+		config := map[string]interface{}{
+			"keySize":   cfg.GetChaCha20Poly1305Config().KeySize,
+			"keyFile":   cfg.GetChaCha20Poly1305Config().KeyFile,
+			"nonceSize": cfg.GetChaCha20Poly1305Config().NonceSize,
+			"tagSize":   cfg.GetChaCha20Poly1305Config().TagSize,
+		}
+		if err := processor.Configure(config); err != nil {
+			return nil, fmt.Errorf("failed to configure ChaCha20-Poly1305 processor: %w", err)
 		}
 	}
 	return processor, nil

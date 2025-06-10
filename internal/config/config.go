@@ -11,6 +11,7 @@ import (
 // Provider defines the interface for configuration management
 type Provider interface {
 	GetAESConfig() AESConfig
+	GetChaCha20Poly1305Config() ChaCha20Poly1305Config
 	GetBase64Config() Base64Config
 	GetCaesarConfig() CaesarConfig
 	GetRSAConfig() RSAConfig
@@ -27,6 +28,14 @@ type Provider interface {
 type AESConfig struct {
 	DefaultKeySize int    `yaml:"defaultKeySize"`
 	KeyFile        string `yaml:"keyFile"`
+}
+
+// ChaCha20Poly1305Config represents ChaCha20-Poly1305 specific configuration
+type ChaCha20Poly1305Config struct {
+	KeySize   int    `yaml:"keySize"`
+	KeyFile   string `yaml:"keyFile"`
+	NonceSize int    `yaml:"nonceSize"`
+	TagSize   int    `yaml:"tagSize"`
 }
 
 // Base64Config represents Base64-specific configuration
@@ -99,21 +108,27 @@ type GeneralConfig struct {
 
 // Config implements Provider interface
 type Config struct {
-	AES     AESConfig     `yaml:"aes"`
-	Base64  Base64Config  `yaml:"base64"`
-	Caesar  CaesarConfig  `yaml:"caesar"`
-	RSA     RSAConfig     `yaml:"rsa"`
-	HMAC    HMACConfig    `yaml:"hmac"`
-	PBKDF   PBKDFConfig   `yaml:"pbkdf"`
-	DH      DHConfig      `yaml:"dh"`
-	X25519  X25519Config  `yaml:"x25519"`
-	JWT     JWTConfig     `yaml:"jwt"`
-	General GeneralConfig `yaml:"general"`
+	AES              AESConfig              `yaml:"aes"`
+	ChaCha20Poly1305 ChaCha20Poly1305Config `yaml:"chacha20poly1305"`
+	Base64           Base64Config           `yaml:"base64"`
+	Caesar           CaesarConfig           `yaml:"caesar"`
+	RSA              RSAConfig              `yaml:"rsa"`
+	HMAC             HMACConfig             `yaml:"hmac"`
+	PBKDF            PBKDFConfig            `yaml:"pbkdf"`
+	DH               DHConfig               `yaml:"dh"`
+	X25519           X25519Config           `yaml:"x25519"`
+	JWT              JWTConfig              `yaml:"jwt"`
+	General          GeneralConfig          `yaml:"general"`
 }
 
 // GetAESConfig returns the AES configuration
 func (c *Config) GetAESConfig() AESConfig {
 	return c.AES
+}
+
+// GetChaCha20Poly1305Config returns the ChaCha20-Poly1305 configuration
+func (c *Config) GetChaCha20Poly1305Config() ChaCha20Poly1305Config {
+	return c.ChaCha20Poly1305
 }
 
 // GetBase64Config returns the Base64 configuration
@@ -263,6 +278,27 @@ func LoadConfig(configPath string) (*Config, error) {
 	config.JWT.Ed25519PublicKeyFile = filepath.Join(keysDir, "jwt_ed25519_public.bin")
 	config.JWT.AvailableAlgorithms = []string{"HS256", "RS256", "EdDSA"}
 
+	// Set ChaCha20-Poly1305 defaults
+	config.ChaCha20Poly1305.KeySize = 256
+	config.ChaCha20Poly1305.KeyFile = filepath.Join(keysDir, "chacha20poly1305_key.bin")
+	config.ChaCha20Poly1305.NonceSize = 12
+	config.ChaCha20Poly1305.TagSize = 16
+
+	// Set Caesar defaults
+	config.Caesar.DefaultShift = 3
+
+	// Set PBKDF defaults
+	config.PBKDF.Algorithm = "argon2id"
+	config.PBKDF.Iterations = 100000
+	config.PBKDF.Memory = 65536
+	config.PBKDF.Threads = 4
+	config.PBKDF.KeyLength = 32
+	config.PBKDF.AvailableAlgorithms = []string{"pbkdf2", "argon2id", "scrypt"}
+
+	// Set General defaults
+	config.General.LogLevel = "info"
+	config.General.Debug = false
+
 	return &config, nil
 }
 
@@ -296,6 +332,12 @@ func createDefaultConfig() *Config {
 	// Set AES defaults
 	config.AES.DefaultKeySize = 256
 	config.AES.KeyFile = filepath.Join(keysDir, "aes_key.bin")
+
+	// Set ChaCha20-Poly1305 defaults
+	config.ChaCha20Poly1305.KeySize = 256
+	config.ChaCha20Poly1305.KeyFile = filepath.Join(keysDir, "chacha20poly1305_key.bin")
+	config.ChaCha20Poly1305.NonceSize = 12
+	config.ChaCha20Poly1305.TagSize = 16
 
 	// Set Base64 defaults
 	config.Base64.PaddingChar = "="

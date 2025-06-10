@@ -37,7 +37,7 @@ func (m *Menu) Run() error {
 			continue
 		}
 
-		if choice == 11 {
+		if choice == 12 {
 			m.display.ShowGoodbye()
 			return nil
 		}

@@ -25,19 +25,22 @@ func NewConsoleDisplay() *ConsoleDisplay {
 
 // ShowMenu displays the main menu
 func (d *ConsoleDisplay) ShowMenu() {
-	fmt.Printf("\n%s\n", d.theme.Format("CryptoLens - Choose an encryption method:", "cyan"))
-	fmt.Printf("%s\n", d.theme.Format("1. Base64 Encoding", "yellow"))
+	fmt.Printf("\n%s\n", d.theme.Format("CryptoLens - Cryptographic Operations", "bold brightCyan"))
+	fmt.Printf("%s\n", d.theme.Format("=================================", "dim blue"))
+	fmt.Printf("%s\n", d.theme.Format("Select an operation:", "bold"))
+	fmt.Printf("%s\n", d.theme.Format("1. Base64 Encoding/Decoding", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("2. Caesar Cipher", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("3. AES Encryption", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("3. AES Encryption/Decryption", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("4. SHA-256 Hashing", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("5. RSA Encryption", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("6. HMAC Authentication", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("7. Password-Based Key Derivation", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("5. RSA Encryption/Decryption", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("6. HMAC (Hash-based Message Authentication)", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("7. PBKDF (Password-Based Key Derivation)", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("8. Diffie-Hellman Key Exchange", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("9. X25519 Key Exchange", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("10. JWT (JSON Web Token)", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("11. Exit", "yellow"))
-	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-11): ", "green"))
+	fmt.Printf("%s\n", d.theme.Format("11. ChaCha20-Poly1305 Encryption", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("12. Exit", "red"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-12): ", "green"))
 }
 
 // ShowResult displays the processing result and steps
