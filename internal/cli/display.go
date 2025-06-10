@@ -50,90 +50,73 @@ func (d *ConsoleDisplay) ShowResult(result string, steps []string) {
 
 	fmt.Printf("\n%s\n", d.theme.Format("Processing Steps:", "brightCyan"))
 
-	// Create sections
-	sections := map[string][]string{
-		"📌 Introduction":      make([]string, 0),
-		"🔢 Implementation":    make([]string, 0),
-		"🔍 Technical Details": make([]string, 0),
-		"📈 Security":          make([]string, 0),
-		"⚠️ Caveats":          make([]string, 0),
-	}
-
-	// Categorize steps into sections
-	currentSection := "📌 Introduction"
+	// Process steps in sequence
 	for _, step := range steps {
-		// Introduction section
-		if strings.HasPrefix(step, "Note:") && !strings.Contains(step, "Security") && !strings.Contains(step, "Warning") {
-			currentSection = "📌 Introduction"
+		// Handle section headers
+		if strings.HasPrefix(step, "📌") || strings.HasPrefix(step, "🔢") ||
+			strings.HasPrefix(step, "📈") || strings.HasPrefix(step, "🔒") ||
+			strings.HasPrefix(step, "📚") {
+			fmt.Printf("\n%s\n", d.theme.Format(step, "bold"))
+			fmt.Printf("%s\n", d.theme.Format(strings.Repeat("=", len(step)), "dim"))
+			continue
 		}
-		// Implementation section
-		if strings.HasPrefix(step, "How") ||
-			strings.HasPrefix(step, "1.") ||
-			strings.HasPrefix(step, "2.") ||
-			strings.HasPrefix(step, "3.") ||
-			strings.HasPrefix(step, "4.") ||
-			strings.HasPrefix(step, "5.") ||
-			strings.HasPrefix(step, "6.") {
-			currentSection = "🔢 Implementation"
-		}
-		// Technical Details section
-		if strings.HasPrefix(step, "Technical") ||
-			strings.HasPrefix(step, "ASCII") ||
-			strings.HasPrefix(step, "Binary") ||
-			strings.HasPrefix(step, "Character") ||
-			strings.HasPrefix(step, "Block") ||
-			strings.HasPrefix(step, "Key") ||
-			strings.HasPrefix(step, "Padding") ||
-			strings.HasPrefix(step, "Algorithm") {
-			currentSection = "🔍 Technical Details"
-		}
-		// Security section
-		if strings.HasPrefix(step, "Security") ||
-			strings.Contains(step, "authentication") ||
-			strings.Contains(step, "integrity") ||
-			strings.Contains(step, "resistant") ||
-			strings.Contains(step, "secure") {
-			currentSection = "📈 Security"
-		}
-		// Caveats section
-		if strings.Contains(step, "vulnerable") ||
-			strings.Contains(step, "warning") ||
-			strings.Contains(step, "not secure") ||
-			strings.Contains(step, "broken") ||
-			strings.Contains(step, "⚠️") {
-			currentSection = "⚠️ Caveats"
-		}
-		// Keep current section for other steps
-		sections[currentSection] = append(sections[currentSection], step)
-	}
 
-	// Display each section with a header and separator
-	for section, sectionSteps := range sections {
-		if len(sectionSteps) > 0 {
-			fmt.Printf("\n%s\n", d.theme.Format(section, "bold"))
-			fmt.Printf("%s\n", d.theme.Format(strings.Repeat("=", len(section)), "dim"))
+		// Handle separators
+		if strings.HasPrefix(step, "----------------------------------------") {
+			fmt.Printf("%s\n", d.theme.Format(step, "dim blue"))
+			continue
+		}
 
-			for _, step := range sectionSteps {
-				if strings.HasPrefix(step, "Note:") {
-					fmt.Printf("%s\n", d.theme.Format(step, "dim"))
-				} else if strings.Contains(step, "->") {
-					fmt.Printf("%s\n", d.theme.Format(step, "brightYellow"))
-				} else if strings.HasPrefix(step, "Character") {
-					fmt.Printf("%s\n", d.theme.Format(step, "brightPurple"))
-				} else if strings.HasPrefix(step, "ASCII") || strings.HasPrefix(step, "Binary") {
-					fmt.Printf("%s\n", d.theme.Format(step, "brightBlue"))
-				} else {
-					// Split step into title and details if it contains a colon
-					parts := strings.SplitN(step, ":", 2)
-					if len(parts) == 2 {
-						fmt.Printf("%s %s\n", d.theme.Format(parts[0]+":", "bold"), d.theme.Format(parts[1], "white"))
-					} else {
-						fmt.Printf("%s\n", d.theme.Format(step, "white"))
-					}
-				}
+		// Handle arrows
+		if strings.Contains(step, "↓") {
+			fmt.Printf("%s\n", d.theme.Format(step, "brightYellow bold"))
+			continue
+		}
+
+		// Handle success indicators
+		if strings.Contains(step, "✅") {
+			fmt.Printf("%s\n", d.theme.Format(step, "brightGreen"))
+			continue
+		}
+
+		// Handle warning indicators
+		if strings.Contains(step, "⚠️") {
+			fmt.Printf("%s\n", d.theme.Format(step, "brightRed"))
+			continue
+		}
+
+		// Handle step numbers
+		if strings.HasPrefix(step, "Step") {
+			fmt.Printf("\n%s\n", d.theme.Format(step, "bold brightCyan"))
+			continue
+		}
+
+		// Handle bullet points
+		if strings.HasPrefix(step, "•") {
+			fmt.Printf("%s\n", d.theme.Format(step, "brightYellow"))
+			continue
+		}
+
+		// Handle ASCII diagrams
+		if strings.Contains(step, "┌") || strings.Contains(step, "│") ||
+			strings.Contains(step, "└") || strings.Contains(step, "─") {
+			fmt.Printf("%s\n", d.theme.Format(step, "brightBlue"))
+			continue
+		}
+
+		// Handle labels with colons
+		if strings.Contains(step, ":") {
+			parts := strings.SplitN(step, ":", 2)
+			if len(parts) == 2 {
+				fmt.Printf("%s %s\n", d.theme.Format(parts[0]+":", "bold"), d.theme.Format(parts[1], "white"))
+			} else {
+				fmt.Printf("%s\n", d.theme.Format(step, "white"))
 			}
-			fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
+			continue
 		}
+
+		// Default case
+		fmt.Printf("%s\n", d.theme.Format(step, "white"))
 	}
 }
 
