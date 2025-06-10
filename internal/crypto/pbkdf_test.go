@@ -9,7 +9,7 @@ func TestPBKDFProcessor_Configure(t *testing.T) {
 	config := map[string]interface{}{
 		"iterations": 1000,
 		"saltSize":   8,
-		"keyFile":    "test_pbkdf_key.bin",
+		"keyFile":    "keys/test_pbkdf_key.bin",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure PBKDFProcessor: %v", err)
@@ -21,7 +21,7 @@ func TestPBKDFProcessor_Process_SHA256(t *testing.T) {
 	config := map[string]interface{}{
 		"iterations": 1000,
 		"saltSize":   8,
-		"keyFile":    "test_pbkdf_key.bin",
+		"keyFile":    "keys/test_pbkdf_key.bin",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure PBKDFProcessor: %v", err)

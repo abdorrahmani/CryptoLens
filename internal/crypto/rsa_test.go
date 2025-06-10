@@ -8,8 +8,8 @@ func TestRSAProcessor_Configure(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
 		"keySize":        2048,
-		"publicKeyFile":  "test_rsa_public.pem",
-		"privateKeyFile": "test_rsa_private.pem",
+		"publicKeyFile":  "keys/test_rsa_public.pem",
+		"privateKeyFile": "keys/test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure RSAProcessor: %v", err)
@@ -20,8 +20,8 @@ func TestRSAProcessor_Process_EncryptDecrypt(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
 		"keySize":        2048,
-		"publicKeyFile":  "test_rsa_public.pem",
-		"privateKeyFile": "test_rsa_private.pem",
+		"publicKeyFile":  "keys/test_rsa_public.pem",
+		"privateKeyFile": "keys/test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure RSAProcessor: %v", err)
@@ -53,8 +53,8 @@ func TestRSAProcessor_Process_InvalidOperation(t *testing.T) {
 	processor := NewRSAProcessor()
 	config := map[string]interface{}{
 		"keySize":        2048,
-		"publicKeyFile":  "test_rsa_public.pem",
-		"privateKeyFile": "test_rsa_private.pem",
+		"publicKeyFile":  "keys/test_rsa_public.pem",
+		"privateKeyFile": "keys/test_rsa_private.pem",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure RSAProcessor: %v", err)

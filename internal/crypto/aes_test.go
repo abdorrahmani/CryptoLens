@@ -27,7 +27,7 @@ func TestAESProcessor_Configure(t *testing.T) {
 			name: "valid config",
 			config: map[string]interface{}{
 				"keySize": 128,
-				"keyFile": "test_key.bin",
+				"keyFile": "keys/test_key.bin",
 			},
 			wantErr: false,
 			keySize: 128,
@@ -37,7 +37,7 @@ func TestAESProcessor_Configure(t *testing.T) {
 			name: "invalid key size",
 			config: map[string]interface{}{
 				"keySize": 512,
-				"keyFile": "test_key.bin",
+				"keyFile": "keys/test_key.bin",
 			},
 			wantErr: true,
 		},
@@ -46,7 +46,7 @@ func TestAESProcessor_Configure(t *testing.T) {
 			config:  map[string]interface{}{},
 			wantErr: false,
 			keySize: 256,
-			keyFile: "aes_key.bin",
+			keyFile: "keys/aes_key.bin",
 		},
 	}
 
@@ -71,7 +71,7 @@ func TestAESProcessor_Process(t *testing.T) {
 	processor := NewAESProcessor()
 	err := processor.Configure(map[string]interface{}{
 		"keySize": 256,
-		"keyFile": "test_aes_key.bin",
+		"keyFile": "keys/test_aes_key.bin",
 	})
 	if err != nil {
 		t.Fatalf("Failed to configure processor: %v", err)
@@ -140,7 +140,7 @@ func TestAESProcessor_Process_EmptyInput(t *testing.T) {
 	processor := NewAESProcessor()
 	err := processor.Configure(map[string]interface{}{
 		"keySize": 256,
-		"keyFile": "test_aes_key.bin",
+		"keyFile": "keys/test_aes_key.bin",
 	})
 	if err != nil {
 		t.Fatalf("Failed to configure processor: %v", err)
@@ -157,7 +157,7 @@ func TestAESProcessor_Process_InvalidOperation(t *testing.T) {
 	processor := NewAESProcessor()
 	err := processor.Configure(map[string]interface{}{
 		"keySize": 256,
-		"keyFile": "test_aes_key.bin",
+		"keyFile": "keys/test_aes_key.bin",
 	})
 	if err != nil {
 		t.Fatalf("Failed to configure processor: %v", err)
@@ -174,7 +174,7 @@ func TestAESProcessor_Process_InvalidBase64(t *testing.T) {
 	processor := NewAESProcessor()
 	err := processor.Configure(map[string]interface{}{
 		"keySize": 256,
-		"keyFile": "test_aes_key.bin",
+		"keyFile": "keys/test_aes_key.bin",
 	})
 	if err != nil {
 		t.Fatalf("Failed to configure processor: %v", err)

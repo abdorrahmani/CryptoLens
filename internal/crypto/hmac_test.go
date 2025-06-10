@@ -8,7 +8,7 @@ func TestHMACProcessor_Configure(t *testing.T) {
 	processor := NewHMACProcessor()
 	config := map[string]interface{}{
 		"hashAlgorithm": HashSHA256,
-		"keyFile":       "test_hmac_key.bin",
+		"keyFile":       "keys/test_hmac_key.bin",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure HMACProcessor: %v", err)
@@ -19,7 +19,7 @@ func TestHMACProcessor_Process_SHA256(t *testing.T) {
 	processor := NewHMACProcessor()
 	config := map[string]interface{}{
 		"hashAlgorithm": HashSHA256,
-		"keyFile":       "test_hmac_key.bin",
+		"keyFile":       "keys/test_hmac_key.bin",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure HMACProcessor: %v", err)
@@ -41,7 +41,7 @@ func TestHMACProcessor_Process_InvalidOperation(t *testing.T) {
 	processor := NewHMACProcessor()
 	config := map[string]interface{}{
 		"hashAlgorithm": HashSHA256,
-		"keyFile":       "test_hmac_key.bin",
+		"keyFile":       "keys/test_hmac_key.bin",
 	}
 	if err := processor.Configure(config); err != nil {
 		t.Fatalf("Failed to configure HMACProcessor: %v", err)
