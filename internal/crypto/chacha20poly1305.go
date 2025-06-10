@@ -100,23 +100,81 @@ func (p *ChaCha20Poly1305Processor) encrypt(text string, v *utils.Visualizer) (s
 	v.AddTextStep("Original Text", text)
 	v.AddArrow()
 
-	// Show key information
-	v.AddHexStep("Encryption Key", p.keyManager.GetKey())
+	// Ask for key input preference
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Key Management:", "brightCyan"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("1. Use existing key", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("2. Enter custom key (32 bytes in hex)", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter your choice (1-2): ", "brightGreen"))
+
+	var key []byte
+	var err error
+	choice := ""
+	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+		choice = strings.TrimSpace(input)
+	}
+
+	if choice == "2" {
+		fmt.Printf("%s", utils.DefaultTheme.Format("Enter 32-byte key in hex format: ", "brightGreen"))
+		keyHex := ""
+		if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+			keyHex = strings.TrimSpace(input)
+		}
+		key, err = hex.DecodeString(keyHex)
+		if err != nil || len(key) != 32 {
+			return "", nil, fmt.Errorf("invalid key: must be 32 bytes in hex format")
+		}
+		v.AddNote("Using custom key")
+		v.AddNote("Warning: Ensure the key is kept secure and not reused")
+	} else {
+		key = p.keyManager.GetKey()
+		v.AddNote("Using existing key from key manager")
+	}
+
+	v.AddHexStep("Encryption Key", key)
 	v.AddArrow()
 
 	// Create ChaCha20-Poly1305 cipher
-	aead, err := chacha20poly1305.New(p.keyManager.GetKey())
+	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
 
-	// Generate nonce
-	nonce := make([]byte, p.nonceSize)
-	if _, err := rand.Read(nonce); err != nil {
-		return "", nil, fmt.Errorf("failed to generate nonce: %w", err)
+	// Ask for nonce input preference
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Nonce Management:", "brightCyan"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("1. Generate random nonce", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("2. Enter custom nonce (12 bytes in hex)", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter your choice (1-2): ", "brightGreen"))
+
+	var nonce []byte
+	choice = ""
+	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+		choice = strings.TrimSpace(input)
 	}
 
-	v.AddHexStep("Generated Nonce", nonce)
+	if choice == "2" {
+		fmt.Printf("%s", utils.DefaultTheme.Format("Enter 12-byte nonce in hex format: ", "brightGreen"))
+		nonceHex := ""
+		if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+			nonceHex = strings.TrimSpace(input)
+		}
+		nonce, err = hex.DecodeString(nonceHex)
+		if err != nil || len(nonce) != 12 {
+			return "", nil, fmt.Errorf("invalid nonce: must be 12 bytes in hex format")
+		}
+		v.AddNote("Using custom nonce")
+		v.AddNote("⚠️ WARNING: Never reuse a nonce with the same key")
+		v.AddNote("⚠️ WARNING: Nonce reuse can lead to complete security failure")
+		v.AddNote("⚠️ WARNING: Each encryption should use a unique nonce")
+	} else {
+		nonce = make([]byte, p.nonceSize)
+		if _, err := rand.Read(nonce); err != nil {
+			return "", nil, fmt.Errorf("failed to generate nonce: %w", err)
+		}
+		v.AddNote("Using randomly generated nonce")
+		v.AddNote("The nonce is cryptographically secure and unique")
+	}
+
+	v.AddHexStep("Nonce", nonce)
 	v.AddArrow()
 
 	// Get AAD from user
@@ -177,6 +235,10 @@ func (p *ChaCha20Poly1305Processor) encrypt(text string, v *utils.Visualizer) (s
 		v.AddNote("6. AAD provides additional authentication for associated metadata")
 		v.AddNote("7. Any change to AAD will cause decryption to fail")
 	}
+	if choice == "2" {
+		v.AddNote("8. Using custom key - ensure it's kept secure")
+		v.AddNote("9. Using custom nonce - ensure it's never reused")
+	}
 
 	return base64.StdEncoding.EncodeToString(result), v.GetSteps(), nil
 }
@@ -211,8 +273,40 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	v.AddHexStep("Extracted Authentication Tag", tag)
 	v.AddArrow()
 
+	// Ask for key input preference
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Key Management:", "brightCyan"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("1. Use existing key", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("2. Enter custom key (32 bytes in hex)", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter your choice (1-2): ", "brightGreen"))
+
+	var key []byte
+	choice := ""
+	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+		choice = strings.TrimSpace(input)
+	}
+
+	if choice == "2" {
+		fmt.Printf("%s", utils.DefaultTheme.Format("Enter 32-byte key in hex format: ", "brightGreen"))
+		keyHex := ""
+		if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+			keyHex = strings.TrimSpace(input)
+		}
+		key, err = hex.DecodeString(keyHex)
+		if err != nil || len(key) != 32 {
+			return "", nil, fmt.Errorf("invalid key: must be 32 bytes in hex format")
+		}
+		v.AddNote("Using custom key")
+		v.AddNote("Warning: Ensure the key is kept secure and not reused")
+	} else {
+		key = p.keyManager.GetKey()
+		v.AddNote("Using existing key from key manager")
+	}
+
+	v.AddHexStep("Decryption Key", key)
+	v.AddArrow()
+
 	// Get AAD from user
-	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter Additional Authenticated Data (AAD) or press Enter to skip: ", "brightGreen bold"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter Additional Authenticated Data (AAD) or press Enter to skip: ", "brightGreen"))
 	aad := ""
 	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
 		aad = strings.TrimSpace(input)
@@ -226,12 +320,8 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 		v.AddArrow()
 	}
 
-	// Show key information
-	v.AddHexStep("Decryption Key", p.keyManager.GetKey())
-	v.AddArrow()
-
 	// Create ChaCha20-Poly1305 cipher
-	aead, err := chacha20poly1305.New(p.keyManager.GetKey())
+	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
@@ -249,6 +339,9 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 			v.AddNote("1. Incorrect AAD")
 			v.AddNote("2. Tampered ciphertext")
 			v.AddNote("3. Invalid authentication tag")
+		}
+		if choice == "2" {
+			v.AddNote("4. Incorrect custom key")
 		}
 		return "", v.GetSteps(), fmt.Errorf("decryption failed: %w", err)
 	}
@@ -276,6 +369,10 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	if aad != "" {
 		v.AddNote("6. AAD provides additional authentication for associated metadata")
 		v.AddNote("7. Any change to AAD will cause decryption to fail")
+	}
+	if choice == "2" {
+		v.AddNote("8. Using custom key - ensure it's kept secure")
+		v.AddNote("9. Using custom nonce - ensure it's never reused")
 	}
 
 	return string(plaintext), v.GetSteps(), nil
