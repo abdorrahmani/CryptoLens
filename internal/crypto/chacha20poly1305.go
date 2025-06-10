@@ -175,6 +175,30 @@ func (p *ChaCha20Poly1305Processor) Process(text string, operation string) (stri
 	v.AddStep("   • Nonce reuse resistance")
 	v.AddSeparator()
 
+	// Add Tampering Test Section
+	v.AddStep("Tampering Test")
+	v.AddStep("================")
+	v.AddStep("This section demonstrates how ChaCha20-Poly1305 detects tampering")
+	v.AddStep("You can test the authenticity feature by:")
+	v.AddStep("1. Encrypting a message")
+	v.AddStep("2. Modifying the ciphertext or tag")
+	v.AddStep("3. Attempting to decrypt")
+	v.AddStep("4. Observing the authentication failure")
+	v.AddSeparator()
+
+	v.AddStep("Example Tampering Tests:")
+	v.AddStep("1. Modify a single byte in the ciphertext")
+	v.AddStep("2. Change the authentication tag")
+	v.AddStep("3. Alter the nonce")
+	v.AddStep("4. Modify the AAD (if used)")
+	v.AddSeparator()
+
+	v.AddStep("Expected Results:")
+	v.AddStep("• Any modification will cause decryption to fail")
+	v.AddStep("• The error message will indicate authentication failure")
+	v.AddStep("• This demonstrates the integrity protection of ChaCha20-Poly1305")
+	v.AddSeparator()
+
 	if operation == OperationEncrypt {
 		return p.encrypt(text, v)
 	}
@@ -352,7 +376,8 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	v.AddStep("----------------------")
 	decoded, err := base64.StdEncoding.DecodeString(text)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to decode input: %w", err)
+		v.AddStep("❌ Error: Invalid base64 input")
+		return "", v.GetSteps(), fmt.Errorf("failed to decode input: %w", err)
 	}
 
 	// Show input
@@ -363,7 +388,8 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	v.AddStep("Step 2: Data Extraction")
 	v.AddStep("---------------------")
 	if len(decoded) < p.nonceSize {
-		return "", nil, fmt.Errorf("input too short")
+		v.AddStep("❌ Error: Input too short")
+		return "", v.GetSteps(), fmt.Errorf("input too short")
 	}
 	nonce := decoded[:p.nonceSize]
 	ciphertext := decoded[p.nonceSize:]
@@ -380,8 +406,69 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	v.AddHexStep("Extracted Authentication Tag", tag)
 	v.AddArrow()
 
+	// Interactive Tampering Test
+	v.AddStep("Step 3: Tampering Test")
+	v.AddStep("---------------------")
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Do you want to simulate tampering?", "brightCyan"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("1. No tampering", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("2. Flip a bit in ciphertext", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("3. Corrupt the tag", "yellow"))
+	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter your choice (1-3): ", "brightGreen"))
+
+	choice := ""
+	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
+		choice = strings.TrimSpace(input)
+	}
+
+	// Show simulation details
+	v.AddStep("Simulation Details:")
+	v.AddStep("-----------------")
+	switch choice {
+	case "2":
+		// Flip a random bit in the ciphertext
+		if len(actualCiphertext) > 0 {
+			byteIndex := 0
+			bitIndex := 0
+			originalByte := actualCiphertext[byteIndex]
+			actualCiphertext[byteIndex] ^= 1 << bitIndex
+			v.AddStep("⚠️ Simulating ciphertext tampering:")
+			v.AddStep(fmt.Sprintf("• Original byte at position 0: %08b", originalByte))
+			v.AddStep(fmt.Sprintf("• Modified byte at position 0: %08b", actualCiphertext[byteIndex]))
+			v.AddStep("• Flipped bit 0 in the first byte")
+			v.AddStep("❌ This modification will cause authentication to fail!")
+			v.AddStep("Original Ciphertext (hex): " + hex.EncodeToString([]byte{originalByte}))
+			v.AddStep("Modified Ciphertext (hex): " + hex.EncodeToString([]byte{actualCiphertext[byteIndex]}))
+		}
+	case "3":
+		// Corrupt the tag
+		if len(tag) > 0 {
+			originalTag := make([]byte, len(tag))
+			copy(originalTag, tag)
+			tag[0] ^= 0xFF // Flip all bits in first byte
+			v.AddStep("⚠️ Simulating tag corruption:")
+			v.AddStep(fmt.Sprintf("• Original tag (first byte): %08b", originalTag[0]))
+			v.AddStep(fmt.Sprintf("• Corrupted tag (first byte): %08b", tag[0]))
+			v.AddStep("• Flipped all bits in the first byte of the tag")
+			v.AddStep("❌ This corruption will cause authentication to fail!")
+			v.AddStep("Original Tag (hex): " + hex.EncodeToString(originalTag[:1]))
+			v.AddStep("Modified Tag (hex): " + hex.EncodeToString(tag[:1]))
+		}
+	default:
+		v.AddStep("✅ No tampering simulated")
+	}
+	v.AddSeparator()
+
+	// Reconstruct the modified ciphertext if tampering was performed
+	if choice == "2" || choice == "3" {
+		ciphertext = append(actualCiphertext, tag...)
+		v.AddStep("Modified Data:")
+		v.AddStep("-------------")
+		v.AddHexStep("Modified Ciphertext", ciphertext)
+		v.AddSeparator()
+	}
+
 	// Ask for key input preference
-	v.AddStep("Step 3: Key Management")
+	v.AddStep("Step 4: Key Management")
 	v.AddStep("---------------------")
 	fmt.Printf("\n%s", utils.DefaultTheme.Format("Key Management:", "brightCyan"))
 	fmt.Printf("\n%s", utils.DefaultTheme.Format("1. Use existing key", "yellow"))
@@ -389,7 +476,7 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter your choice (1-2): ", "brightGreen"))
 
 	var key []byte
-	choice := ""
+	choice = ""
 	if input, err := bufio.NewReader(os.Stdin).ReadString('\n'); err == nil {
 		choice = strings.TrimSpace(input)
 	}
@@ -402,7 +489,8 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 		}
 		key, err = hex.DecodeString(keyHex)
 		if err != nil || len(key) != 32 {
-			return "", nil, fmt.Errorf("invalid key: must be 32 bytes in hex format")
+			v.AddStep("❌ Error: Invalid key format or length")
+			return "", v.GetSteps(), fmt.Errorf("invalid key: must be 32 bytes in hex format")
 		}
 		v.AddStep("Using custom key")
 		v.AddStep("⚠️ Warning: Ensure the key is kept secure and not reused")
@@ -415,7 +503,7 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	v.AddArrow()
 
 	// Get AAD from user
-	v.AddStep("Step 4: Additional Authenticated Data (AAD)")
+	v.AddStep("Step 5: Additional Authenticated Data (AAD)")
 	v.AddStep("----------------------------------------")
 	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter Additional Authenticated Data (AAD) or press Enter to skip: ", "brightGreen"))
 	aad := ""
@@ -432,36 +520,22 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	}
 
 	// Create ChaCha20-Poly1305 cipher
-	v.AddStep("Step 5: Cipher Initialization")
+	v.AddStep("Step 6: Cipher Initialization")
 	v.AddStep("---------------------------")
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create cipher: %w", err)
+		v.AddStep("❌ Error: Failed to create cipher")
+		return "", v.GetSteps(), fmt.Errorf("failed to create cipher: %w", err)
 	}
 	v.AddStep("✅ Cipher initialized successfully")
 	v.AddArrow()
 
 	// Measure execution time
-	v.AddStep("Step 6: Decryption Process")
+	v.AddStep("Step 7: Decryption Process")
 	v.AddStep("------------------------")
 	startTime := time.Now()
 	plaintext, err := aead.Open(nil, nonce, ciphertext, []byte(aad))
 	executionTime := time.Since(startTime)
-
-	if err != nil {
-		v.AddStep("❌ Decryption Failed:")
-		v.AddStep(fmt.Sprintf("Error: %v", err))
-		if aad != "" {
-			v.AddStep("The error might be due to:")
-			v.AddStep("1. Incorrect AAD")
-			v.AddStep("2. Tampered ciphertext")
-			v.AddStep("3. Invalid authentication tag")
-		}
-		if choice == "2" {
-			v.AddStep("4. Incorrect custom key")
-		}
-		return "", v.GetSteps(), fmt.Errorf("decryption failed: %w", err)
-	}
 
 	// Format execution time
 	var timeStr string
@@ -472,8 +546,37 @@ func (p *ChaCha20Poly1305Processor) decrypt(text string, v *utils.Visualizer) (s
 	}
 	v.AddStep(fmt.Sprintf("Decryption time: %s", timeStr))
 
+	if err != nil {
+		v.AddStep("❌ Authentication Failed!")
+		v.AddStep("=========================")
+		v.AddStep("The decryption failed because:")
+		if choice == "2" {
+			v.AddStep("• A bit was flipped in the ciphertext")
+			v.AddStep("• This demonstrates how ChaCha20-Poly1305 detects tampering")
+			v.AddStep("• The authentication tag verification failed")
+			v.AddStep("• This is expected behavior for tampered data")
+		} else if choice == "3" {
+			v.AddStep("• The authentication tag was corrupted")
+			v.AddStep("• This shows how the MAC protects message integrity")
+			v.AddStep("• The tag verification failed")
+			v.AddStep("• This is expected behavior for tampered data")
+		} else {
+			v.AddStep("• The message authentication failed")
+			v.AddStep("• This could be due to:")
+			v.AddStep("  - Incorrect key")
+			v.AddStep("  - Tampered ciphertext")
+			v.AddStep("  - Modified authentication tag")
+			if aad != "" {
+				v.AddStep("  - Changed AAD")
+			}
+		}
+		v.AddStep("This is expected behavior for authenticated encryption")
+		v.AddStep("It ensures that any modification to the encrypted data is detected")
+		return "", v.GetSteps(), nil // Return steps instead of error
+	}
+
 	// Show decrypted text
-	v.AddStep("Step 7: Final Result")
+	v.AddStep("Step 8: Final Result")
 	v.AddStep("------------------")
 	v.AddTextStep("Decrypted Text", string(plaintext))
 
