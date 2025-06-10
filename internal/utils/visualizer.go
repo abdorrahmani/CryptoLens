@@ -42,7 +42,7 @@ func (v *Visualizer) AddBinaryStep(label string, data []byte) {
 	for i, b := range data {
 		binary[i] = v.theme.Format(fmt.Sprintf("%08b", b), "brightYellow")
 	}
-	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(binary, " ")), "brightBlue bold"))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(binary, " ")), "brightBlue"))
 }
 
 // AddHexStep adds a step showing hexadecimal representation
@@ -51,27 +51,27 @@ func (v *Visualizer) AddHexStep(label string, data []byte) {
 	for i, b := range data {
 		hex[i] = v.theme.Format(fmt.Sprintf("%02x", b), "brightGreen")
 	}
-	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(hex, " ")), "brightBlue bold"))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, strings.Join(hex, " ")), "brightBlue"))
 }
 
 // AddTextStep adds a step showing text representation
 func (v *Visualizer) AddTextStep(label string, text string) {
-	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, text), "brightPurple bold"))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("%s: %s", label, text), "brightPurple"))
 }
 
 // AddArrow adds a visual arrow to show transformation
 func (v *Visualizer) AddArrow() {
-	v.steps = append(v.steps, v.theme.Format("    ↓", "brightYellow bold"))
+	v.steps = append(v.steps, v.theme.Format("    ↓", "brightYellow"))
 }
 
 // AddSeparator adds a visual separator
 func (v *Visualizer) AddSeparator() {
-	v.steps = append(v.steps, v.theme.Format("----------------------------------------", "dim blue"))
+	v.steps = append(v.steps, v.theme.Format("----------------------------------------", "blue"))
 }
 
 // AddNote adds an explanatory note
 func (v *Visualizer) AddNote(note string) {
-	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("Note: %s", note), "dim yellow"))
+	v.steps = append(v.steps, v.theme.Format(fmt.Sprintf("Note: %s", note), "yellow"))
 }
 
 // GetSteps returns all visualization steps
@@ -81,10 +81,10 @@ func (v *Visualizer) GetSteps() []string {
 
 // Display prints the visualization to the console
 func (v *Visualizer) Display() {
-	fmt.Printf("\n%s\n", v.theme.Format("Encryption Process Visualization:", "bold brightCyan"))
-	fmt.Printf("%s\n", v.theme.Format("=================================", "dim blue"))
+	fmt.Printf("\n%s\n", v.theme.Format("Encryption Process Visualization:", "brightCyan"))
+	fmt.Printf("%s\n", v.theme.Format("=================================", "blue"))
 	for _, step := range v.steps {
 		fmt.Println(step)
 	}
-	fmt.Printf("%s\n", v.theme.Format("=================================", "dim blue"))
+	fmt.Printf("%s\n", v.theme.Format("=================================", "blue"))
 }
