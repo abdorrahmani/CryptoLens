@@ -124,7 +124,7 @@ func (p *TimingAttackProcessor) Process(text string, operation string) (string, 
 			strings.Repeat("░", totalBytes-i-1))
 
 		// Format the ETA with fixed width
-		etaStr := formatDuration(eta)
+		etaStr := utils.FormatDuration(eta)
 		if etaStr == "" {
 			etaStr = "calculating..."
 		}
@@ -307,16 +307,4 @@ func compare(a, b []byte) bool {
 		time.Sleep(1 * time.Millisecond) // Simulated delay
 	}
 	return true
-}
-
-func formatDuration(d time.Duration) string {
-	if d < time.Second {
-		return fmt.Sprintf("%.0fms", float64(d.Milliseconds()))
-	}
-	if d < time.Minute {
-		return fmt.Sprintf("%.1fs", d.Seconds())
-	}
-	minutes := int(d.Minutes())
-	seconds := int(d.Seconds()) % 60
-	return fmt.Sprintf("%dm %ds", minutes, seconds)
 }
