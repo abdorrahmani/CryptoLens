@@ -85,6 +85,15 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 			}
 		}
 		return processor, nil
+	case 3:
+		processor := attacks.NewTimingAttackProcessor()
+		// Always configure the timing attack processor with a 256-bit key
+		if err := processor.Configure(map[string]interface{}{
+			"keySize": 256, // HMAC-SHA256 uses 256-bit keys
+		}); err != nil {
+			return nil, fmt.Errorf("failed to configure timing attack processor: %w", err)
+		}
+		return processor, nil
 	default:
 		return nil, fmt.Errorf("invalid attack choice: %d", choice)
 	}
