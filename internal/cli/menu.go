@@ -37,15 +37,66 @@ func (m *Menu) Run() error {
 			continue
 		}
 
-		if choice == 12 {
+		if choice == 13 {
 			m.display.ShowGoodbye()
 			return nil
+		}
+
+		if choice == 12 {
+			if err := m.handleAttackMenu(); err != nil {
+				m.display.ShowError(err)
+			}
+			continue
 		}
 
 		if err := m.processChoice(choice); err != nil {
 			m.display.ShowError(err)
 		}
 	}
+}
+
+// handleAttackMenu handles the attack simulation menu
+func (m *Menu) handleAttackMenu() error {
+	for {
+		m.display.ShowAttackMenu()
+
+		choice, err := m.input.GetAttackChoice()
+		if err != nil {
+			return err
+		}
+
+		if choice == 6 {
+			return nil // Back to main menu
+		}
+
+		if err := m.processAttackChoice(choice); err != nil {
+			return err
+		}
+	}
+}
+
+// processAttackChoice handles the user's attack menu choice
+func (m *Menu) processAttackChoice(choice int) error {
+	processor, err := m.factory.CreateAttackProcessor(choice)
+	if err != nil {
+		return fmt.Errorf("failed to create attack processor: %w", err)
+	}
+
+	fmt.Printf("\n%s", m.display.(*ConsoleDisplay).theme.Format("Enter text to demonstrate the attack: ", "brightGreen bold"))
+	text, err := m.input.GetText()
+	if err != nil {
+		return err
+	}
+
+	m.display.ShowProcessingMessage(text)
+
+	result, steps, err := processor.Process(text, crypto.OperationEncrypt)
+	if err != nil {
+		return fmt.Errorf("failed to process: %w", err)
+	}
+
+	m.display.ShowResult(result, steps)
+	return nil
 }
 
 // processChoice handles the user's menu choice

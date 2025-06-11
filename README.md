@@ -66,6 +66,13 @@ CryptoLens is an educational CLI tool designed to help users understand various 
   - Support for both encryption and decryption
   - Automatic key generation
 
+- **ChaCha20-Poly1305**
+  - Modern stream cipher with AEAD
+  - High-performance encryption
+  - Authentication and encryption in one operation
+  - Support for both encryption and decryption
+  - Secure nonce handling
+
 - **SHA-256 Hashing**
   - Cryptographic hash function
   - One-way transformation
@@ -309,6 +316,7 @@ cryptolens/
 │   │   ├── base64.go        # Base64 encoding/decoding
 │   │   ├── caesar.go        # Caesar cipher implementation
 │   │   ├── aes.go           # AES encryption/decryption
+│   │   ├── chacha20poly1305.go # ChaCha20-Poly1305 implementation
 │   │   ├── sha256.go        # SHA-256 hashing
 │   │   ├── rsa.go           # RSA encryption/decryption
 │   │   ├── hmac.go          # HMAC implementation
@@ -316,7 +324,7 @@ cryptolens/
 │   │   ├── dh.go            # Diffie-Hellman implementation
 │   │   ├── x25519.go        # X25519 implementation
 │   │   ├── jwt.go           # JWT implementation
-│   │   ├── processor.go     # Encryption processor interface
+│   │   ├── interfaces.go    # Encryption processor interface
 │   │   └── keymanager.go    # Key management
 │   ├── cli/                 # CLI interface components
 │   │   ├── menu.go          # Interactive menu system
@@ -326,9 +334,13 @@ cryptolens/
 │   │   └── factory.go       # Encryption method factory
 │   ├── config/             # Configuration management
 │   │   └── config.go       # Configuration handling
-│   └── utils/              # Utility functions
-│       ├── visualizer.go    # Process visualization
-│       └── theme.go         # Color theme management
+│   ├── utils/              # Utility functions
+│   │   ├── visualizer.go    # Process visualization
+│   │   └── theme.go         # Color theme management
+│   ├── input/              # Input handling
+│   │   └── input.go        # Input processing
+│   └── benchmark/          # Benchmarking tools
+│       └── benchmark.go     # Performance measurement
 ├── keys/                   # Encryption keys storage
 │   ├── rsa_private.pem     # RSA private key
 │   ├── rsa_public.pem      # RSA public key

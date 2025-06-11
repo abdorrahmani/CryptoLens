@@ -10,11 +10,13 @@ type MenuInterface interface {
 // ProcessorFactory defines the contract for creating encryption processors
 type ProcessorFactory interface {
 	CreateProcessor(choice int) (crypto.Processor, error)
+	CreateAttackProcessor(choice int) (crypto.Processor, error)
 }
 
 // UserInputHandler defines the contract for handling user input
 type UserInputHandler interface {
 	GetChoice() (int, error)
+	GetAttackChoice() (int, error)
 	GetText() (string, error)
 	GetOperation() (string, error)
 }
@@ -22,6 +24,7 @@ type UserInputHandler interface {
 // DisplayHandler defines the contract for displaying output
 type DisplayHandler interface {
 	ShowMenu()
+	ShowAttackMenu()
 	ShowResult(result string, steps []string)
 	ShowError(err error)
 	ShowWelcome()

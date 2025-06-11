@@ -31,10 +31,10 @@ func (i *ConsoleInput) GetChoice() (int, error) {
 	i.scanner.Scan()
 	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
 	if err != nil {
-		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 12")
+		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 13")
 	}
-	if choice < 1 || choice > 12 {
-		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 12")
+	if choice < 1 || choice > 13 {
+		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 13")
 	}
 	return choice, nil
 }
@@ -105,4 +105,17 @@ func GetIntInput(prompt string, minValue, maxValue int) int {
 // SetDHMode sets the DH mode flag
 func (i *ConsoleInput) SetDHMode(isDH bool) {
 	i.isDHMode = isDH
+}
+
+// GetAttackChoice gets the user's choice from the attack menu
+func (i *ConsoleInput) GetAttackChoice() (int, error) {
+	i.scanner.Scan()
+	choice, err := strconv.Atoi(strings.TrimSpace(i.scanner.Text()))
+	if err != nil {
+		return 0, fmt.Errorf("invalid input: please enter a number between 1 and 6")
+	}
+	if choice < 1 || choice > 6 {
+		return 0, fmt.Errorf("invalid choice: please enter a number between 1 and 6")
+	}
+	return choice, nil
 }

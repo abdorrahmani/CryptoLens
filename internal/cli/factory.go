@@ -5,6 +5,7 @@ import (
 
 	"github.com/abdorrahmani/cryptolens/internal/config"
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
+	"github.com/abdorrahmani/cryptolens/internal/crypto/attacks"
 )
 
 // ProcessorRegistry maps processor IDs to their creation functions
@@ -59,6 +60,24 @@ func (f *CryptoProcessorFactory) CreateProcessor(choice int) (crypto.Processor, 
 	}
 
 	return creator(f.config)
+}
+
+// CreateAttackProcessor creates an attack processor based on the given choice
+func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Processor, error) {
+	switch choice {
+	case 1:
+		processor := attacks.NewECBProcessor()
+		if f.config != nil {
+			if err := processor.Configure(map[string]interface{}{
+				"keySize": f.config.GetAESConfig().DefaultKeySize,
+			}); err != nil {
+				return nil, fmt.Errorf("failed to configure ECB processor: %w", err)
+			}
+		}
+		return processor, nil
+	default:
+		return nil, fmt.Errorf("invalid attack choice: %d", choice)
+	}
 }
 
 // Processor creation functions

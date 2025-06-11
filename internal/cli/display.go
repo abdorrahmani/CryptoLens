@@ -39,8 +39,23 @@ func (d *ConsoleDisplay) ShowMenu() {
 	fmt.Printf("%s\n", d.theme.Format("9. X25519 Key Exchange", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("10. JWT (JSON Web Token)", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("11. ChaCha20-Poly1305 Encryption", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("12. Exit", "red"))
-	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-12): ", "green"))
+	fmt.Printf("%s\n", d.theme.Format("12. Attack Simulations", "red"))
+	fmt.Printf("%s\n", d.theme.Format("13. Exit", "red"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-13): ", "green"))
+}
+
+// ShowAttackMenu displays the attack simulation menu
+func (d *ConsoleDisplay) ShowAttackMenu() {
+	fmt.Printf("\n%s\n", d.theme.Format("Attack Simulations", "brightRed"))
+	fmt.Printf("%s\n", d.theme.Format("==================", "red"))
+	fmt.Printf("%s\n", d.theme.Format("Select an attack to simulate:", "bold"))
+	fmt.Printf("%s\n", d.theme.Format("1. ECB Mode Vulnerability", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("2. Reused Nonce in ChaCha20/AES-GCM", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("3. Timing Attack (HMAC verification)", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("4. Padding Oracle Attack", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("5. JWT None Algorithm Attack", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("6. Back to Main Menu", "red"))
+	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-6): ", "green"))
 }
 
 // ShowResult displays the processing result and steps
