@@ -103,15 +103,37 @@ func (p *TimingAttackProcessor) Process(text string, operation string) (string, 
 	}
 	byteTimings := make([]byteTiming, totalBytes)
 
+	// Start time for ETA calculation
+	startTime := time.Now()
+
 	// Print initial progress line
-	fmt.Print("Progress: [", strings.Repeat("░", totalBytes), "] 0/", totalBytes, " bytes")
+	fmt.Print("Progress: [", strings.Repeat("░", totalBytes), "] 0/", totalBytes, " bytes - ETA: calculating...")
 
 	for i := 0; i < len(correctHMAC); i++ {
-		// Update progress in the same line
-		fmt.Printf("\rProgress: [%s%s] %d/%d bytes",
+		// Calculate ETA
+		elapsed := time.Since(startTime)
+		progress := float64(i) / float64(totalBytes)
+		var eta time.Duration
+		if progress > 0 {
+			eta = time.Duration(float64(elapsed) / progress * (1 - progress))
+		}
+
+		// Create a fixed-width progress bar
+		progressBar := fmt.Sprintf("[%s%s]",
 			strings.Repeat("█", i+1),
-			strings.Repeat("░", totalBytes-i-1),
-			i+1, totalBytes)
+			strings.Repeat("░", totalBytes-i-1))
+
+		// Format the ETA with fixed width
+		etaStr := formatDuration(eta)
+		if etaStr == "" {
+			etaStr = "calculating..."
+		}
+
+		// Update progress in the same line with fixed-width fields
+		fmt.Printf("\rProgress: %-40s %d/%d bytes - ETA: %-10s",
+			progressBar,
+			i+1, totalBytes,
+			etaStr)
 
 		v.AddStep(fmt.Sprintf("\nGuessing byte %d:", i+1))
 
@@ -172,16 +194,57 @@ func (p *TimingAttackProcessor) Process(text string, operation string) (string, 
 		}
 	}
 
+	// Track statistics
+	var correctGuesses, incorrectGuesses int
+	var totalCorrectTime, totalIncorrectTime time.Duration
+	var correctCount, incorrectCount int
+
 	// Show timing graph
 	for _, bt := range byteTimings {
 		// Scale the bar length (max 50 characters)
 		barLength := int(float64(bt.time) / float64(maxTime) * 50)
 		bar := strings.Repeat("█", barLength)
-		v.AddStep(fmt.Sprintf("Byte %2d: %6.2fms %s",
+
+		// Check if this byte was guessed correctly
+		guessedByte := guessedHMAC[bt.byteNum-1]
+		correctByte := correctHMAC[bt.byteNum-1]
+		isCorrect := guessedByte == correctByte
+
+		// Update statistics
+		if isCorrect {
+			correctGuesses++
+			totalCorrectTime += bt.time
+			correctCount++
+		} else {
+			incorrectGuesses++
+			totalIncorrectTime += bt.time
+			incorrectCount++
+		}
+
+		// Add status indicator
+		status := "❌"
+		if isCorrect {
+			status = "✔️"
+		}
+
+		v.AddStep(fmt.Sprintf("Byte %2d: %6.2fms %s %s",
 			bt.byteNum,
 			float64(bt.time.Microseconds())/1000.0,
-			bar))
+			bar,
+			status))
 	}
+
+	// Calculate averages
+	var avgCorrectTime, avgIncorrectTime time.Duration
+	if correctCount > 0 {
+		avgCorrectTime = totalCorrectTime / time.Duration(correctCount)
+	}
+	if incorrectCount > 0 {
+		avgIncorrectTime = totalIncorrectTime / time.Duration(incorrectCount)
+	}
+
+	// Calculate accuracy
+	accuracy := float64(correctGuesses) / float64(totalBytes) * 100
 
 	// Show final results
 	v.AddSeparator()
@@ -189,6 +252,15 @@ func (p *TimingAttackProcessor) Process(text string, operation string) (string, 
 	v.AddStep(fmt.Sprintf("Total attack time: %.2fs", float64(totalTime.Seconds())))
 	v.AddStep(fmt.Sprintf("Guessed HMAC: %s", hex.EncodeToString(guessedHMAC)))
 	v.AddStep(fmt.Sprintf("Correct HMAC: %s", correctHMACHex))
+
+	// Add statistics
+	v.AddSeparator()
+	v.AddStep("Attack Statistics:")
+	v.AddStep(fmt.Sprintf("✔️ Correct guesses: %d", correctGuesses))
+	v.AddStep(fmt.Sprintf("❌ Incorrect guesses: %d", incorrectGuesses))
+	v.AddStep(fmt.Sprintf("📊 Accuracy: %.1f%%", accuracy))
+	v.AddStep(fmt.Sprintf("⏱️ Average time per byte (correct): %.1fms", float64(avgCorrectTime.Microseconds())/1000.0))
+	v.AddStep(fmt.Sprintf("⏱️ Average time per byte (wrong): %.1fms", float64(avgIncorrectTime.Microseconds())/1000.0))
 
 	if hex.EncodeToString(guessedHMAC) == correctHMACHex {
 		v.AddStep("✅ Attack successful!")
@@ -235,4 +307,16 @@ func compare(a, b []byte) bool {
 		time.Sleep(1 * time.Millisecond) // Simulated delay
 	}
 	return true
+}
+
+func formatDuration(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%.0fms", float64(d.Milliseconds()))
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	minutes := int(d.Minutes())
+	seconds := int(d.Seconds()) % 60
+	return fmt.Sprintf("%dm %ds", minutes, seconds)
 }
