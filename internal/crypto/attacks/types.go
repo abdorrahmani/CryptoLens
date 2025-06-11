@@ -1,6 +1,8 @@
 package attacks
 
 import (
+	"time"
+
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
@@ -57,6 +59,13 @@ func (p *BaseProcessor) GetSteps() []string {
 	return p.visualizer.GetSteps()
 }
 
+// AddSteps adds multiple steps to the visualization
+func (p *BaseProcessor) AddSteps(steps []string) {
+	for _, step := range steps {
+		p.AddStep(step)
+	}
+}
+
 // AttackConfig holds common configuration for attacks
 type AttackConfig struct {
 	KeySize    int
@@ -71,4 +80,47 @@ func NewAttackConfig() *AttackConfig {
 		KeySize:    256,
 		Iterations: 100,
 	}
+}
+
+// AttackResult represents the outcome of an attack simulation
+type AttackResult struct {
+	Success      bool
+	Duration     time.Duration
+	GuessedValue []byte
+	CorrectValue []byte
+	Statistics   *AttackStatistics
+}
+
+// AttackStatistics holds statistical information about an attack
+type AttackStatistics struct {
+	CorrectGuesses   int
+	IncorrectGuesses int
+	Accuracy         float64
+	AvgCorrectTime   time.Duration
+	AvgIncorrectTime time.Duration
+	ByteTimings      []ByteTiming
+}
+
+// ByteTiming represents timing information for a single byte guess
+type ByteTiming struct {
+	ByteNumber int
+	Duration   time.Duration
+	IsCorrect  bool
+}
+
+// AttackSimulator defines the interface for attack simulations
+type AttackSimulator interface {
+	Simulate(input string) (*AttackResult, error)
+}
+
+// ProgressTracker handles progress reporting during attacks
+type ProgressTracker interface {
+	UpdateProgress(current, total int, eta time.Duration)
+	Complete()
+}
+
+// AttackVisualizer handles visualization of attack results
+type AttackVisualizer interface {
+	VisualizeAttack(result *AttackResult) []string
+	VisualizeSecurityNotes() []string
 }
