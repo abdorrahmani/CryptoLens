@@ -61,7 +61,7 @@ func (v *Visualizer) AddTextStep(label string, text string) {
 
 // AddArrow adds a visual arrow to show transformation
 func (v *Visualizer) AddArrow() {
-	v.steps = append(v.steps, v.theme.Format("    ↓", "brightYellow"))
+	v.steps = append(v.steps, v.theme.Format("    ↓↓↓", "brightYellow"))
 }
 
 // AddSeparator adds a visual separator
