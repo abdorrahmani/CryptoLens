@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"testing"
 
@@ -16,7 +17,11 @@ func mockStdin(inputs ...string) func() {
 
 	// Write all inputs with newlines
 	for _, input := range inputs {
-		w.Write([]byte(input + "\n"))
+		if _, err := w.Write([]byte(input + "\n")); err != nil {
+			// If we can't write to the pipe, we should restore stdin and panic
+			os.Stdin = oldStdin
+			panic(fmt.Sprintf("failed to write to mock stdin: %v", err))
+		}
 	}
 	w.Close()
 

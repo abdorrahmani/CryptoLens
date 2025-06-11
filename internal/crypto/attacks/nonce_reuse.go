@@ -62,7 +62,10 @@ func (p *NonceReuseProcessor) Process(text string, operation string) (string, []
 	v.AddStep("----------------------")
 	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter a second message to encrypt with the same nonce: ", "brightGreen"))
 	var secondMessage string
-	fmt.Scanln(&secondMessage)
+	if _, err := fmt.Scanln(&secondMessage); err != nil {
+		// If there's an error reading input, use a default message
+		secondMessage = "This is a different message encrypted with the same nonce!"
+	}
 	if secondMessage == "" {
 		secondMessage = "This is a different message encrypted with the same nonce!"
 	}
