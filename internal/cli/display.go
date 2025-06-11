@@ -50,7 +50,7 @@ func (d *ConsoleDisplay) ShowAttackMenu() {
 	fmt.Printf("%s\n", d.theme.Format("==================", "red"))
 	fmt.Printf("%s\n", d.theme.Format("Select an attack to simulate:", "bold"))
 	fmt.Printf("%s\n", d.theme.Format("1. ECB Mode Vulnerability", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("2. Reused Nonce in ChaCha20/AES-GCM", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("2. Nonce Reuse in AEAD (ChaCha20-Poly1305)", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("3. Timing Attack (HMAC verification)", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("4. Padding Oracle Attack", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("5. JWT None Algorithm Attack", "yellow"))

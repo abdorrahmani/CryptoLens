@@ -75,6 +75,16 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 			}
 		}
 		return processor, nil
+	case 2:
+		processor := attacks.NewNonceReuseProcessor()
+		if f.config != nil {
+			if err := processor.Configure(map[string]interface{}{
+				"keySize": f.config.GetChaCha20Poly1305Config().KeySize,
+			}); err != nil {
+				return nil, fmt.Errorf("failed to configure nonce reuse processor: %w", err)
+			}
+		}
+		return processor, nil
 	default:
 		return nil, fmt.Errorf("invalid attack choice: %d", choice)
 	}
