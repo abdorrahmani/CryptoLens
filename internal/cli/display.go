@@ -52,7 +52,7 @@ func (d *ConsoleDisplay) ShowAttackMenu() {
 	fmt.Printf("%s\n", d.theme.Format("1. ECB Mode Vulnerability", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("2. Nonce Reuse in AEAD (ChaCha20-Poly1305)", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("3. Timing Attack (HMAC verification)", "yellow"))
-	fmt.Printf("%s\n", d.theme.Format("4. Padding Oracle Attack", "yellow"))
+	fmt.Printf("%s\n", d.theme.Format("4. Brute Force on Weak Keys or Passwords", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("5. JWT None Algorithm Attack", "yellow"))
 	fmt.Printf("%s\n", d.theme.Format("6. Back to Main Menu", "red"))
 	fmt.Printf("\n%s", d.theme.Format("Enter your choice (1-6): ", "green"))

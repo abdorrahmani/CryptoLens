@@ -94,6 +94,12 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 			return nil, fmt.Errorf("failed to configure timing attack processor: %w", err)
 		}
 		return processor, nil
+	case 4:
+		processor := attacks.NewBruteForceProcessor()
+		if err := processor.Configure(nil); err != nil {
+			return nil, fmt.Errorf("failed to configure brute force processor: %w", err)
+		}
+		return processor, nil
 	default:
 		return nil, fmt.Errorf("invalid attack choice: %d", choice)
 	}
