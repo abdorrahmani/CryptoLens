@@ -426,7 +426,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Quick Start for Contributors
 ```bash
 # Fork and clone
-git clone https://github.com/YOUR_USERNAME/cryptolens.git
+git clone https://github.com/abdorrahmani/cryptolens.git
 cd cryptolens
 
 # Install dependencies
