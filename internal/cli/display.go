@@ -154,7 +154,30 @@ func (d *ConsoleDisplay) ShowWelcome() {
  \____|_|   \__, | .__/ \__\___/|_____\___|_| |_|___/
             |___/|_|                                                                
 `
-	fmt.Printf("%s\n", d.theme.Format(asciiArt, "blue"))
+	width := utils.GetTerminalWidth()
+
+	lines := strings.Split(strings.TrimSpace(asciiArt), "\n")
+
+	maxLen := 0
+	for _, line := range lines {
+		if len(line) > maxLen {
+			maxLen = len(line)
+		}
+	}
+
+	// Calculate padding for centering
+	padding := (width - maxLen) / 2
+	if padding < 0 {
+		padding = 0
+	}
+
+	// Center each line
+	centeredArt := ""
+	for _, line := range lines {
+		centeredArt += strings.Repeat(" ", padding) + line + "\n"
+	}
+
+	fmt.Printf("%s\n", d.theme.Format(centeredArt, "blue"))
 	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "brightRed"))
 	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "white"))
 	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
