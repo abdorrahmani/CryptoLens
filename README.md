@@ -17,6 +17,12 @@
   *Your Interactive Cryptography Learning Tool*
 </div>
 
+<div align="center">
+  <img src="assets/cmd.png" alt="CryptoLens Command Line Interface" width="600"/>
+  
+  *Interactive Command Line Interface*
+</div>
+
 ## 📖 Overview
 
 CryptoLens is an educational CLI tool designed to help users understand various encryption methods and their underlying principles. It provides step-by-step visual explanations of different encryption algorithms and their processes, making cryptography concepts more accessible and easier to understand.
@@ -159,6 +165,37 @@ CryptoLens is an educational CLI tool designed to help users understand various 
   - Token generation and verification
   - Claims handling
   - Expiration management
+
+### 🎯 Attack Simulations
+- **ECB Mode Vulnerability**
+  - Demonstrates the weakness of Electronic Codebook (ECB) mode
+  - Shows how patterns in plaintext are preserved in ciphertext
+  - Visual representation of block patterns
+  - Real-world examples of ECB vulnerabilities
+
+- **Nonce Reuse in AEAD**
+  - Simulates the catastrophic effects of nonce reuse in ChaCha20-Poly1305
+  - Demonstrates how nonce reuse breaks confidentiality
+  - Shows practical examples of nonce reuse attacks
+  - Best practices for nonce management
+
+- **Timing Attack on HMAC**
+  - Simulates timing side-channel attacks on HMAC verification
+  - Demonstrates constant-time comparison importance
+  - Shows how timing differences can leak information
+  - Countermeasures and secure implementations
+
+- **Brute Force Attacks**
+  - Simulates brute force attacks on weak keys and passwords
+  - Demonstrates password strength importance
+  - Shows time estimates for different key lengths
+  - Best practices for key and password generation
+
+- **JWT None Algorithm Attack**
+  - Demonstrates the vulnerability of accepting "none" algorithm
+  - Shows how to forge valid JWTs without a secret
+  - Explains proper JWT algorithm validation
+  - Security best practices for JWT implementation
 
 ### 🎯 Key Features
 - Interactive CLI interface with intuitive menu system
