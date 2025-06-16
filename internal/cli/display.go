@@ -147,7 +147,7 @@ func (d *ConsoleDisplay) ShowError(err error) {
 // ShowWelcome displays the welcome message
 func (d *ConsoleDisplay) ShowWelcome() {
 	asciiArt := `
-  ____                  _        _                   
+  ..____                  _        _                   
  / ___|_ __ _   _ _ __ | |_ ___ | |    ___ _ __  ___ 
 | |   | '__| | | | '_ \| __/ _ \| |   / _ | '_ \/ __|
 | |___| |  | |_| | |_) | || (_) | |__|  __| | | \__ \
@@ -178,9 +178,30 @@ func (d *ConsoleDisplay) ShowWelcome() {
 	}
 
 	fmt.Printf("%s\n", d.theme.Format(centeredArt, "blue"))
-	fmt.Printf("%s %s\n", d.theme.Format("Welcome to CryptoLens!", "brightCyan"), d.theme.Format(fmt.Sprintf("v%s", version), "brightRed"))
-	fmt.Printf("%s\n", d.theme.Format("This program demonstrates various encryption methods.", "white"))
-	fmt.Printf("%s\n", d.theme.Format("----------------------------------------", "blue"))
+
+	// Center welcome messages
+	welcomeMsg := fmt.Sprintf("Welcome to CryptoLens! v%s", version)
+	descMsg := "This program demonstrates various encryption methods."
+	separator := "----------------------------------------"
+
+	// Calculate padding for welcome messages
+	welcomePadding := (width - len(welcomeMsg)) / 2
+	descPadding := (width - len(descMsg)) / 2
+	sepPadding := (width - len(separator)) / 2
+
+	if welcomePadding < 0 {
+		welcomePadding = 0
+	}
+	if descPadding < 0 {
+		descPadding = 0
+	}
+	if sepPadding < 0 {
+		sepPadding = 0
+	}
+
+	fmt.Printf("%s%s\n", strings.Repeat(" ", welcomePadding), d.theme.Format(welcomeMsg, "brightCyan"))
+	fmt.Printf("%s%s\n", strings.Repeat(" ", descPadding), d.theme.Format(descMsg, "white"))
+	fmt.Printf("%s%s\n", strings.Repeat(" ", sepPadding), d.theme.Format(separator, "blue"))
 }
 
 // ShowGoodbye displays the goodbye message
