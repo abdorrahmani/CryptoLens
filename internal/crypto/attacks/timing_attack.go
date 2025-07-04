@@ -357,7 +357,6 @@ func (v *TimingAttackVisualizer) VisualizeSecurityNotes() []string {
 
 // ConsoleProgressTracker implements progress tracking in the console
 type ConsoleProgressTracker struct {
-	totalBytes int
 }
 
 // NewConsoleProgressTracker creates a new console progress tracker
