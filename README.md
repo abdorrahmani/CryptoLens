@@ -13,18 +13,17 @@
 
 <div align="center">
   <img src="assets/CryptoLens.png" alt="CryptoLens Logo" width="250"/>
-  
-  *Your Interactive Cryptography Learning Tool*
+  <br/>
+  <em>Your Interactive Cryptography Learning Tool</em>
 </div>
 
 <div align="center">
   <img src="assets/cmd.png" alt="CryptoLens Command Line Interface" width="600"/>
-  
-  *Interactive Command Line Interface*
+  <br/>
+  <em>Interactive Command Line Interface</em>
 </div>
 
 ## 📖 Overview
-
 CryptoLens is an educational CLI tool designed to help users understand various encryption methods and their underlying principles. It provides step-by-step visual explanations of different encryption algorithms and their processes, making cryptography concepts more accessible and easier to understand.
 
 ## 🌟 Highlights
@@ -48,6 +47,10 @@ CryptoLens is an educational CLI tool designed to help users understand various 
 - 90%+ Test Coverage
 - 100% Security Audited
 - 24/7 Community Support
+
+# 📚 Supported Algorithms
+
+Each algorithm below is fully documented in the [`/docs`](./docs) folder. See the linked docs for in-depth technical details, security notes, and troubleshooting.
 
 ## ✨ Features
 
@@ -341,7 +344,7 @@ Final JWT: [header].[payload].[signature]
 =================================
 ```
 
-## 📁 Project Structure
+# 📁 Project Structure
 
 ```
 cryptolens/
