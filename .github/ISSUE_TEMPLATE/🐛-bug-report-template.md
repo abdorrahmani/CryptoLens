@@ -1,56 +1,42 @@
 ---
-name: "\U0001F41B Bug Report Template"
-about: Create a report to help us improve
-title: ''
+name: "🐛 Bug Report"
+about: Report a bug to help us improve CryptoLens
 labels: bug
 assignees: abdorrahmani
 
 ---
 
-## Issue Title
-Please provide a clear, concise title for your bug report. Example formats:
-- `🐛 [Feature] Description of the issue`
-- `🐛 [Encryption Method] Description of the issue`
-- `🐛 [CLI] Description of the issue`
+## 🐛 Bug Title
+_A clear, concise title for your bug report._
 
-Examples:
-- `🐛 [AES] Encryption fails with special characters`
-- `🐛 [CLI] Menu crashes on Windows PowerShell`
-- `🐛 [RSA] Key generation fails on macOS`
+## 📋 Description
+_Describe the bug in detail. What happened?_
 
-## Describe the bug
-A clear and concise description of what the bug is.
+## 🔁 Steps to Reproduce
+1. _Go to '...'_ 
+2. _Click on '...'_ 
+3. _See error_
 
-## To Reproduce
-Steps to reproduce the behavior:
-1. Run the command `...`
-2. Select encryption method `...`
-3. Enter input `...`
-4. See error
+## 🤔 Expected Behavior
+_What did you expect to happen?_
 
-## Expected behavior
-A clear and concise description of what you expected to happen.
+## 😱 Actual Behavior
+_What actually happened? Paste error messages, logs, or screenshots if available._
 
-## Error Messages
-If applicable, paste the exact error message you received:
-```
-[Paste error message here]
-```
-
-## Environment (please complete the following information):
+## 🖥️ Environment
 - OS: [e.g. Windows 10, Ubuntu 22.04, macOS 13]
 - Go Version: [e.g. 1.21.0]
 - CryptoLens Version: [e.g. 1.0.0]
 - Terminal: [e.g. PowerShell, Bash, Zsh]
 
-## Additional context
-Add any other context about the problem here.
+## 💡 Possible Solution
+_If you have suggestions on how to fix the issue, describe them here._
 
-## Possible Solution
-If you have any suggestions on how to fix the issue, please describe them here.
+## 📷 Additional Context
+_Add any other context about the problem here._
 
-## Checklist
-- [ ] I have searched for similar issues in the repository
-- [ ] I have provided all the required information
-- [ ] I have included error messages if any
+## 📋 Checklist
+- [ ] I have searched for similar issues
+- [ ] I have provided all required information
+- [ ] I have included error messages/logs if any
 - [ ] I have specified my environment details

@@ -1,34 +1,28 @@
 ---
-name: "\U0001F504 Pull Request Template"
-about: Please include a summary of the change and which issue is fixed. Please also
-  include relevant motivation and context.
-title: ''
+name: "🔄 Pull Request"
+about: Submit a pull request to improve CryptoLens
 labels: ''
 assignees: abdorrahmani
 
 ---
 
-## Type of change
-Please delete options that are not relevant.
+## 📝 Summary
+_Describe the changes and the motivation behind them._
 
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 📝 Documentation update
-- [ ] ♻️ Code refactoring
-- [ ] ⚡️ Performance improvement
-- [ ] ✅ Test coverage
-- [ ] 🔧 CI/CD improvement
+## 🗂️ Related Issues
+_Reference any related issues (e.g., Closes #123)._ 
 
-## How Has This Been Tested?
-Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce.
+## 📚 Motivation & Context
+_Why is this change required? What problem does it solve?_
 
+## 🧪 How Has This Been Tested?
+_Describe the tests you ran to verify your changes. Provide instructions so we can reproduce. Include relevant details for test configuration._
 - [ ] Test A
 - [ ] Test B
 
-## Checklist:
+## 📋 Checklist
 - [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
+- [ ] I have performed a self-review of my code
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
@@ -36,13 +30,14 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
 
-## Screenshots (if appropriate):
+## 📷 Screenshots (if appropriate)
 
-## Additional context
-Add any other context about the pull request here.
+## 📝 Additional Context
+_Add any other context about the pull request here._
 
-## Commit Message Format
+## 🏷️ Commit Message Format
 Please ensure your commit message follows the conventional commit format:
+
 ```
 <type>(<scope>): <description>
 

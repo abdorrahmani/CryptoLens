@@ -1,40 +1,36 @@
 ---
-name: "✨ Feature Request Template"
-about: Suggest an idea for this project
-title: ''
+name: "✨ Feature Request"
+about: Suggest an idea or improvement for CryptoLens
 labels: enhancement
 assignees: abdorrahmani
 
 ---
 
-## Issue Title
-Please provide a clear, concise title for your feature request. Example formats:
-- `✨ [Feature] Description of the feature`
-- `✨ [Enhancement] Description of the improvement`
-- `✨ [New Method] Description of the encryption method`
+## ✨ Feature Title
+_A clear, concise title for your feature request._
 
-Examples:
-- `✨ [Feature] Add support for ChaCha20 encryption`
-- `✨ [Enhancement] Improve progress visualization for large files`
-- `✨ [New Method] Implement Twofish encryption algorithm`
+## 📝 Description
+_Describe the feature or enhancement you would like to see. What problem does it solve?_
 
-## Is your feature request related to a problem? Please describe
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## 🚩 Motivation & Context
+_Why is this feature important? Who would benefit from it?_
 
-## Describe the solution you'd like
-A clear and concise description of what you want to happen.
+## ✅ Acceptance Criteria
+_What are the requirements for this feature to be considered complete?_
+- [ ] _Example: User can encrypt files with the new algorithm_
+- [ ] _Example: Documentation is updated_
 
-## Describe alternatives you've considered
-A clear and concise description of any alternative solutions or features you've considered.
+## 🔄 Alternatives Considered
+_Have you considered any alternative solutions or features?_
 
-## Proposed Implementation
-If you have any suggestions on how to implement this feature, please describe them here.
+## 🛠️ Proposed Implementation
+_If you have ideas on how to implement this, describe them here. Code snippets welcome!_
 
-## Additional context
-Add any other context or screenshots about the feature request here.
+## 📷 Additional Context / Screenshots
+_Add any other context, diagrams, or screenshots about the feature request here._
 
-## Checklist
-- [ ] I have searched for similar feature requests in the repository
-- [ ] I have provided all the required information
-- [ ] I have explained why this feature would be useful
+## 📋 Checklist
+- [ ] I have searched for similar feature requests
+- [ ] I have provided all required information
+- [ ] I have explained why this feature is useful
 - [ ] I have considered potential implementation challenges
