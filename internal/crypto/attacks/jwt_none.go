@@ -186,20 +186,32 @@ func (p *JWTNoneProcessor) analyzeAttack(originalToken, maliciousToken string) {
 	// Decode original header
 	originalHeaderJSON, _ := base64.RawURLEncoding.DecodeString(originalParts[0])
 	var originalHeader map[string]interface{}
-	json.Unmarshal(originalHeaderJSON, &originalHeader)
+	err := json.Unmarshal(originalHeaderJSON, &originalHeader)
+	if err != nil {
+		return
+	}
 
 	// Decode malicious header
 	maliciousHeaderJSON, _ := base64.RawURLEncoding.DecodeString(maliciousParts[0])
 	var maliciousHeader map[string]interface{}
-	json.Unmarshal(maliciousHeaderJSON, &maliciousHeader)
+	err = json.Unmarshal(maliciousHeaderJSON, &maliciousHeader)
+	if err != nil {
+		return
+	}
 
 	// Decode payloads
 	originalPayloadJSON, _ := base64.RawURLEncoding.DecodeString(originalParts[1])
 	maliciousPayloadJSON, _ := base64.RawURLEncoding.DecodeString(maliciousParts[1])
 
 	var originalPayload, maliciousPayload map[string]interface{}
-	json.Unmarshal(originalPayloadJSON, &originalPayload)
-	json.Unmarshal(maliciousPayloadJSON, &maliciousPayload)
+	err = json.Unmarshal(originalPayloadJSON, &originalPayload)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(maliciousPayloadJSON, &maliciousPayload)
+	if err != nil {
+		return
+	}
 
 	p.AddStep("Attack Analysis:")
 	p.AddStep("Original Token:")
