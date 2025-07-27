@@ -100,6 +100,12 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 			return nil, fmt.Errorf("failed to configure brute force processor: %w", err)
 		}
 		return processor, nil
+	case 5:
+		processor := attacks.NewJWTNoneProcessor()
+		if err := processor.Configure(nil); err != nil {
+			return nil, fmt.Errorf("failed to configure JWT none processor: %w", err)
+		}
+		return processor, nil
 	default:
 		return nil, fmt.Errorf("invalid attack choice: %d", choice)
 	}
