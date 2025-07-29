@@ -19,6 +19,12 @@ jobs:
         with:
           go-version: '1.21'
 
+      - name: Install mingw-w64 (for windres)
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Symlink windres
+        run: sudo ln -s /usr/bin/x86_64-w64-mingw32-windres /usr/local/bin/windres
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:

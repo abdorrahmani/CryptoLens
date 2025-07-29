@@ -4,6 +4,7 @@ project_name: cryptolens
 before:
   hooks:
     - go mod tidy
+    - windres versioninfo.rc -O coff -o versioninfo.syso
 
 builds:
   - id: cryptolens
@@ -22,6 +23,8 @@ builds:
     main: ./cmd/cryptolens
     binary: cryptolens
     dir: .
+    ldflags:
+      - "-s -w"
 
 archives:
   - format: tar.gz
