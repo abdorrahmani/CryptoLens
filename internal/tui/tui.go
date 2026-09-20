@@ -19,6 +19,16 @@ import (
 
 const version = "1.4.0"
 
+// cryptoLensBanner is the ASCII logo shown on the main menu.
+const cryptoLensBanner = `
+  ..____                  _        _
+ / ___|_ __ _   _ _ __ | |_ ___ | |    ___ _ __  ___
+| |   | '__| | | | '_ \| __/ _ \| |   / _ | '_ \/ __|
+| |___| |  | |_| | |_) | || (_) | |__|  __| | | \__ \
+ \____|_|   \__, | .__/ \__\___/|_____\___|_| |_|___/
+            |___/|_|
+`
+
 // attackMenuID is the sentinel main-menu id that opens the attack submenu.
 const attackMenuID = 100
 
@@ -158,7 +168,7 @@ func (m model) Init() tea.Cmd { return textinput.Blink }
 
 func mainMenu() menu {
 	return menu{
-		title: fmt.Sprintf("🔐 CryptoLens v%s — Cryptographic Operations", version),
+		title: "Select an operation",
 		items: []menuItem{
 			{id: 1, title: "Base64 Encoding/Decoding"},
 			{id: 2, title: "Caesar Cipher"},
@@ -611,7 +621,9 @@ func (m model) runProcessorCmd() tea.Cmd {
 func (m model) View() string {
 	var body string
 	switch m.screen {
-	case screenMenu, screenAttackMenu, screenOperation, screenHashSelect, screenPBKDFSelect, screenJWTSelect:
+	case screenMenu:
+		body = m.bannerView() + m.menu.view() + "\n" + m.menuHelp()
+	case screenAttackMenu, screenOperation, screenHashSelect, screenPBKDFSelect, screenJWTSelect:
 		body = m.menu.view() + "\n" + m.menuHelp()
 	case screenTextInput, screenJWTSecret, screenBenchText, screenBenchIter:
 		body = m.inputView()
@@ -623,6 +635,39 @@ func (m model) View() string {
 		body = m.resultView()
 	}
 	return "\n" + body + "\n"
+}
+
+// bannerView renders the ASCII logo and tagline, centered to the terminal
+// width when known, followed by a blank line. It falls back to left alignment
+// on terminals too narrow to hold the art without wrapping.
+func (m model) bannerView() string {
+	lines := strings.Split(strings.Trim(cryptoLensBanner, "\n"), "\n")
+
+	maxLen := 0
+	for _, ln := range lines {
+		if w := lipgloss.Width(ln); w > maxLen {
+			maxLen = w
+		}
+	}
+
+	pad := 0
+	if m.width > maxLen {
+		pad = (m.width - maxLen) / 2
+	}
+	indent := strings.Repeat(" ", pad)
+
+	var b strings.Builder
+	for _, ln := range lines {
+		b.WriteString(indent + bannerStyle.Render(ln) + "\n")
+	}
+
+	tagline := fmt.Sprintf("Interactive Cryptography Learning Tool · v%s", version)
+	tagPad := 0
+	if m.width > lipgloss.Width(tagline) {
+		tagPad = (m.width - lipgloss.Width(tagline)) / 2
+	}
+	b.WriteString(strings.Repeat(" ", tagPad) + subtitleStyle.Render(tagline) + "\n\n")
+	return b.String()
 }
 
 func (m model) menuHelp() string {

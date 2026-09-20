@@ -24,6 +24,9 @@ var (
 	subtitleStyle = lipgloss.NewStyle().
 			Foreground(colDim)
 
+	bannerStyle = lipgloss.NewStyle().
+			Foreground(colDiagram)
+
 	sepStyle = lipgloss.NewStyle().
 			Foreground(colDim)
 
