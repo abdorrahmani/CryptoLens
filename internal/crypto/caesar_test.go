@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -272,4 +273,74 @@ func TestCaesarProcessor_Process_NonAlphabetic(t *testing.T) {
 	if decrypted != input {
 		t.Errorf("Non-alphabetic characters were modified: got %v, want %v", decrypted, input)
 	}
+}
+
+// caesarSteps runs the processor with a given shift and returns the joined steps.
+func caesarSteps(t *testing.T, input, operation string, shift int) string {
+	t.Helper()
+	p := NewCaesarProcessor()
+	if err := p.Configure(map[string]interface{}{"shift": shift}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process(input, operation)
+	if err != nil {
+		t.Fatalf("Process(%q, %q) error: %v", input, operation, err)
+	}
+	return strings.Join(steps, "\n")
+}
+
+func caesarAssertContains(t *testing.T, haystack string, needles ...string) {
+	t.Helper()
+	for _, n := range needles {
+		if !strings.Contains(haystack, n) {
+			t.Errorf("expected steps to contain %q, but they did not", n)
+		}
+	}
+}
+
+// The output must teach the mechanics: substitution table, formula, and the
+// brute-force weakness — not just describe the cipher.
+func TestCaesar_EducationalContent(t *testing.T) {
+	steps := caesarSteps(t, "HELLO", OperationEncrypt, 3)
+	caesarAssertContains(t, steps,
+		"Substitution table",
+		"C = (P + shift) mod 26", // formula shown
+		"brute-forcing all 25 shifts",
+		"frequency analysis",
+		"Julius Caesar",
+	)
+}
+
+// The substitution table must reflect the actual shift: shift 3 maps A→D.
+func TestCaesar_SubstitutionTableReflectsShift(t *testing.T) {
+	steps := caesarSteps(t, "A", OperationEncrypt, 3)
+	// Cipher alphabet for shift 3 begins D E F G H...
+	caesarAssertContains(t, steps, "D E F G H")
+}
+
+// The brute-force section must mark the real key and contain the plaintext at
+// that shift so the reader sees the attack succeed.
+func TestCaesar_BruteForceMarksRealKey(t *testing.T) {
+	// "KHOOR" is "HELLO" encrypted with shift 3; decrypting should reveal it.
+	steps := caesarSteps(t, "KHOOR", OperationDecrypt, 3)
+	caesarAssertContains(t, steps, "← the real key", "HELLO")
+}
+
+// A shift of 13 (ROT13) should be called out as the self-inverse special case.
+func TestCaesar_ROT13Note(t *testing.T) {
+	steps := caesarSteps(t, "HELLO", OperationEncrypt, 13)
+	caesarAssertContains(t, steps, "ROT13")
+}
+
+// Out-of-range shifts should be normalized and explained (27 ≡ 1).
+func TestCaesar_NormalizesShift(t *testing.T) {
+	steps := caesarSteps(t, "HELLO", OperationEncrypt, 27)
+	caesarAssertContains(t, steps, "equivalent to a shift of 1")
+}
+
+// Long inputs must cap the per-character walkthrough rather than flooding.
+func TestCaesar_WalkthroughCapped(t *testing.T) {
+	long := strings.Repeat("A", 50)
+	steps := caesarSteps(t, long, OperationEncrypt, 3)
+	caesarAssertContains(t, steps, "more letter(s) transformed the same way")
 }
