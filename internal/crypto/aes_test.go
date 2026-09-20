@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"encoding/base64"
+	"strings"
 	"testing"
 )
 
@@ -184,5 +185,91 @@ func TestAESProcessor_Process_InvalidBase64(t *testing.T) {
 	_, _, err = processor.Process("invalid-base64", OperationDecrypt)
 	if err == nil {
 		t.Error("Expected error for invalid base64 input, got nil")
+	}
+}
+
+// aesSteps configures a processor and returns its joined step output.
+func aesSteps(t *testing.T, input, operation string) string {
+	t.Helper()
+	p := NewAESProcessor()
+	if err := p.Configure(map[string]interface{}{"keySize": 256, "keyFile": "keys/test_aes_key.bin"}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process(input, operation)
+	if err != nil {
+		t.Fatalf("Process(%q, %q): %v", input, operation, err)
+	}
+	return strings.Join(steps, "\n")
+}
+
+func aesAssertContains(t *testing.T, haystack string, needles ...string) {
+	t.Helper()
+	for _, n := range needles {
+		if !strings.Contains(haystack, n) {
+			t.Errorf("expected steps to contain %q, but they did not", n)
+		}
+	}
+}
+
+// The encryption output must teach the block-cipher vs mode distinction, the
+// CBC chaining formula, PKCS#7 padding, and the lack of authentication.
+func TestAES_EncryptEducationalContent(t *testing.T) {
+	steps := aesSteps(t, "Hi", OperationEncrypt)
+	aesAssertContains(t, steps,
+		"block cipher and the mode",
+		"CBC mode: chaining",
+		"C[1] = AES_encrypt(P[1] XOR IV)",
+		"PKCS#7 padding",
+		"NOT authenticity",
+		"ChaCha20-Poly1305",
+		"14 transformation rounds", // AES-256 round count
+	)
+}
+
+// PKCS#7 detail must be computed for the specific input length.
+func TestAES_PaddingExplanationIsConcrete(t *testing.T) {
+	// "Hi" is 2 bytes → 14 padding bytes of 0x0E.
+	steps := aesSteps(t, "Hi", OperationEncrypt)
+	aesAssertContains(t, steps, "14 byte(s) of padding", "0x0E")
+}
+
+// The decryption walkthrough must show the CBC decryption formula and unpadding.
+func TestAES_DecryptEducationalContent(t *testing.T) {
+	p := NewAESProcessor()
+	if err := p.Configure(map[string]interface{}{"keySize": 256, "keyFile": "keys/test_aes_key.bin"}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	enc, _, err := p.Process("Hello", OperationEncrypt)
+	if err != nil {
+		t.Fatalf("encrypt: %v", err)
+	}
+	_, steps, err := p.Process(enc, OperationDecrypt)
+	if err != nil {
+		t.Fatalf("decrypt: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	aesAssertContains(t, joined,
+		"P[1] = AES_decrypt(C[1]) XOR IV",
+		"Extracted IV",
+		"padding and removed",
+	)
+}
+
+// unpad must reject padding whose bytes are internally inconsistent, not just a
+// bad final byte (full PKCS#7 validation).
+func TestAES_UnpadRejectsInconsistentPadding(t *testing.T) {
+	p := NewAESProcessor()
+	// Last byte claims 3 padding bytes, but the preceding two are not 0x03.
+	bad := make([]byte, 16)
+	bad[13], bad[14], bad[15] = 0x01, 0x02, 0x03
+	if _, err := p.unpad(bad); err == nil {
+		t.Error("expected error for inconsistent PKCS#7 padding, got nil")
+	}
+
+	// Well-formed padding of 3 must succeed.
+	good := make([]byte, 16)
+	good[13], good[14], good[15] = 0x03, 0x03, 0x03
+	if _, err := p.unpad(good); err != nil {
+		t.Errorf("valid padding rejected: %v", err)
 	}
 }

@@ -1,23 +1,23 @@
 # AES (Advanced Encryption Standard) 🔐
 
 ## Overview
-AES is a symmetric encryption algorithm that uses the same key for both encryption and decryption. CryptoLens implements AES with configurable key sizes (128, 192, or 256 bits), defaulting to AES-256 for maximum security.
+AES — originally the Rijndael cipher, standardized by NIST in 2001 (FIPS-197) — is the workhorse of modern symmetric encryption: TLS, disk encryption, VPNs, and messaging all rely on it. "Symmetric" means the same secret key both encrypts and decrypts. CryptoLens implements AES with configurable key sizes (128/192/256 bits, defaulting to 256) in **CBC mode** with **PKCS#7 padding**, and walks through every step — padding, IV, block chaining, and the reverse on decryption.
+
+> **AES is a block cipher, not a whole encryption scheme.** The cipher only transforms one 16-byte block; a *mode of operation* (CBC here) chains blocks to handle real messages. Most real-world failures come from misusing the mode, not from breaking AES.
 
 ## Features
-- Configurable key sizes (128/192/256 bits)
-- Secure key generation and management
-- CBC (Cipher Block Chaining) mode
-- PKCS7 padding
-- Base64 encoded output
-- Detailed step-by-step process visualization
-- Secure IV (Initialization Vector) generation
-- File-based key storage
+- Configurable key sizes (128/192/256 bits → 10/12/14 rounds)
+- Fresh random IV per encryption
+- PKCS#7 padding with full validation on decrypt
+- Concrete, per-input padding and CBC-chaining walkthrough
+- IV prepended to ciphertext, Base64-encoded output
+- File-based key storage (demo only)
 
 ## Usage
 
-### Command Line Interface
-```bash
-# Select AES from the main menu (Option 3)
+### Terminal User Interface
+```
+# Select AES from the main menu
 3. AES Encryption/Decryption
 
 # Choose operation
@@ -32,135 +32,89 @@ Enter text to process: Your secret message
 ```go
 import "github.com/abdorrahmani/cryptolens/internal/crypto"
 
-// Create AES processor
-aesProcessor := crypto.NewAESProcessor()
+aes := crypto.NewAESProcessor()
+aes.Configure(map[string]interface{}{
+    "keySize": 256,                        // 128, 192, or 256
+    "keyFile": "keys/custom_aes_key.bin",  // optional
+})
 
-// Configure the processor
-config := map[string]interface{}{
-    "keySize": 256,  // Optional: 128, 192, or 256 bits
-    "keyFile": "keys/custom_aes_key.bin",  // Optional: custom key file path
-}
-aesProcessor.Configure(config)
-
-// Encrypt
-encrypted, steps, err := aesProcessor.Process("Your secret message", "encrypt")
-
-// Decrypt
-decrypted, steps, err := aesProcessor.Process(encrypted, "decrypt")
+encrypted, steps, err := aes.Process("Your secret message", crypto.OperationEncrypt)
+decrypted, steps, err := aes.Process(encrypted, crypto.OperationDecrypt)
 ```
 
-## Technical Details
+## How It Works
 
-### Key Management
-- Configurable key sizes (128/192/256 bits)
-- Secure random key generation
-- File-based key storage in `keys` directory
-- Automatic key generation if not exists
-- Custom key file path support
+### Block cipher vs. mode of operation
+AES itself maps one 16-byte block to one 16-byte block under the key. To encrypt arbitrary-length data you need:
+1. **Padding** so the length is a multiple of 16, and
+2. **A mode** that combines successive block encryptions. CryptoLens uses **CBC**.
 
-### Encryption Process
-1. Input validation
-2. Random IV generation (16 bytes)
-3. PKCS7 padding application
-4. AES-CBC encryption
-5. IV + ciphertext combination
-6. Base64 encoding
+### PKCS#7 padding
+CBC needs whole 16-byte blocks. PKCS#7 fills the remainder with bytes whose value equals the number of padding bytes:
 
-### Decryption Process
-1. Base64 decoding
-2. IV extraction (first 16 bytes)
-3. AES-CBC decryption
-4. PKCS7 padding removal
-5. Result conversion to text
+| Input length mod 16 | Padding bytes | Value |
+|---------------------|---------------|-------|
+| 2 (e.g. "Hi")       | 14            | `0x0E` ×14 |
+| 5 (e.g. "Hello")    | 11            | `0x0B` ×11 |
+| 0 (already aligned) | 16 (full block) | `0x10` ×16 |
 
-### Security Features
-- Unique IV for each encryption
-- Secure key storage
-- Input validation
-- Error handling
-- CBC mode for better security
-- PKCS7 padding
+The full extra block when already aligned is deliberate — it lets the decrypter always distinguish padding from real data.
 
-## Examples
-
-### Encryption Example
-```bash
-Input: Hi
-Output: m3hn40pTG3gP+gyJ1ilJzl4RdsFx+6tGdkOdAzv4oNM=
-
-Processing Steps:
-1. Input Text: Hi
-2. Generated IV: 9b 78 67 e3 4a 53 1b 78 0f fa 0c 89 d6 29 49 ce
-3. Padded Input: 48 69 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e
-4. Encrypted Data: 5e 11 76 c1 71 fb ab 46 76 43 9d 03 3b f8 a0 d3
-5. Base64 Result: m3hn40pTG3gP+gyJ1ilJzl4RdsFx+6tGdkOdAzv4oNM=
+### CBC chaining
 ```
+Encrypt:  C[1] = AES_encrypt(P[1] XOR IV)
+          C[i] = AES_encrypt(P[i] XOR C[i-1])   for i > 1
 
-### Decryption Example
-```bash
-Input: m3hn40pTG3gP+gyJ1ilJzl4RdsFx+6tGdkOdAzv4oNM=
-Output: Hi
-
-Processing Steps:
-1. Base64 Decode
-2. Extract IV: 9b 78 67 e3 4a 53 1b 78 0f fa 0c 89 d6 29 49 ce
-3. Decrypt Data
-4. Remove Padding
-5. Final Text: Hi
+Decrypt:  P[1] = AES_decrypt(C[1]) XOR IV
+          P[i] = AES_decrypt(C[i]) XOR C[i-1]   for i > 1
 ```
+XORing each block with the previous ciphertext means **identical plaintext blocks encrypt differently**, hiding the patterns that ECB mode leaks (see the ECB attack simulation, menu 12). The output is `IV || ciphertext`, Base64-encoded, so the decrypter can recover the IV (which is not secret).
 
-## Implementation Details
+### Inside one AES block (14 rounds for AES-256)
+Each block is arranged as a 4×4 byte matrix (the "state") and put through rounds of:
+1. **SubBytes** — non-linear S-box substitution (confusion)
+2. **ShiftRows** — rotate matrix rows (diffusion across columns)
+3. **MixColumns** — linear column mixing (diffusion within columns)
+4. **AddRoundKey** — XOR the round key from the key schedule
 
-### AES Algorithm Steps
-1. Key Expansion
-   - Generate round keys from main key
-   - Number of rounds based on key size (10/12/14 for 128/192/256 bits)
+The first round is AddRoundKey only; the final round omits MixColumns. This is handled by Go's `crypto/aes`; CryptoLens describes it for understanding rather than re-implementing it.
 
-2. Encryption Rounds
-   - Initial Round: AddRoundKey
-   - Main Rounds:
-     - SubBytes: S-box substitution
-     - ShiftRows: Row shifting
-     - MixColumns: Column mixing
-     - AddRoundKey: Key addition
-   - Final Round (without MixColumns)
+## Example
 
-3. CBC Mode Operation
-   - Each block XORed with previous ciphertext
-   - First block uses IV
-   - Provides better security than ECB
+### Encrypting `Hi` (AES-256)
+```
+Input as Bytes:  48 69
+PKCS#7:          2 mod 16 = 2 → 14 bytes of 0x0E
+Padded Input:    48 69 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e 0e
+IV (random):     f4 3e 34 09 ...
+P[1] XOR IV:     bc 57 3a 07 ...   ← this is what AES encrypts
+Ciphertext:      86 67 0e 6e ...
+Result:          base64(IV || ciphertext)
+```
+The Base64 result changes every run because the IV is random — that is correct and desirable.
 
-## Best Practices
-1. Always use unique IVs for each encryption
-2. Keep encryption keys secure
-3. Use appropriate key sizes (256-bit recommended)
-4. Validate all input data
-5. Handle errors appropriately
-6. Monitor key storage security
-7. Regular key rotation
-8. Secure key file permissions
+## Security Considerations
+
+| Point | Why it matters |
+|-------|----------------|
+| Keep the key secret | Anyone with the key can decrypt. This tool's `keys/` storage is for the demo only; use a KMS/OS keystore in production |
+| Unique, unpredictable IV | Reusing an IV with the same key in CBC leaks whether messages share a prefix |
+| CBC ≠ authenticity | CBC gives confidentiality only; an attacker can flip ciphertext bits, and padding checks enable **padding-oracle attacks** |
+| Prefer AEAD | AES-GCM or ChaCha20-Poly1305 (menu 11) encrypt *and* authenticate in one step |
+
+AES the cipher remains unbroken; choose the mode carefully.
 
 ## Troubleshooting
 
-### Common Issues
-1. Key File Issues
-   - Check `keys` directory exists
-   - Verify file permissions (0700)
-   - Ensure key file is readable
-
-2. Decryption Failures
-   - Verify IV is correct
-   - Check key matches
-   - Validate base64 input
-   - Ensure proper padding
-
-3. Configuration Errors
-   - Valid key sizes: 128, 192, 256
-   - Valid key file paths
-   - Proper directory permissions
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "invalid base64 string" | Input to decrypt isn't valid Base64 | Paste the exact encrypted output |
+| "ciphertext too short" / "not a whole number of blocks" | Input is truncated or not AES output | Ensure IV (16 bytes) + full blocks are present |
+| "failed to unpad: invalid padding" | Wrong key, corrupted data, or tampering | Verify the key matches the one used to encrypt |
 
 ## References
-- [NIST AES Specification](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
-- [AES Wikipedia](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
-- [Go Crypto Package](https://pkg.go.dev/crypto/aes)
-- [CBC Mode Security](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CBC) 
+- [FIPS-197 — AES Specification (NIST)](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
+- [AES — Wikipedia](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+- [Block cipher mode of operation (CBC) — Wikipedia](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#CBC)
+- [PKCS#7 padding — RFC 5652 §6.3](https://tools.ietf.org/html/rfc5652#section-6.3)
+- [Go `crypto/aes` package](https://pkg.go.dev/crypto/aes)
