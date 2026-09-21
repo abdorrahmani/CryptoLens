@@ -74,18 +74,59 @@ func (p *DHProcessor) generatePrivateKey() (*big.Int, error) {
 	return private, nil
 }
 
+// addDHIntro explains what DH is and the intuition behind it.
+func addDHIntro(v *utils.Visualizer) {
+	v.AddStep("📌 What is Diffie-Hellman?")
+	v.AddStep("Diffie-Hellman (1976) lets two parties who have never met agree on a shared secret")
+	v.AddStep("over a channel an eavesdropper is fully watching — without ever sending the secret.")
+	v.AddStep("It is KEY AGREEMENT, not encryption: the output is a shared key, which is then")
+	v.AddStep("used with a symmetric cipher like AES.")
+	v.AddNote("Paint analogy: Alice and Bob publicly agree on a base color, each mixes in a secret")
+	v.AddNote("color, and they swap the mixtures. Each adds their own secret again → both reach the")
+	v.AddNote("same final mix. An observer can't 'un-mix' the paints to recover the secrets.")
+	v.AddSeparator()
+
+	v.AddStep("📈 Why it is secure: the discrete logarithm problem")
+	v.AddStep("Computing A = g^a mod p is easy. Going backwards — finding a from g, p and A — is")
+	v.AddStep("infeasible when p is a large prime. That one-way function is what protects the secret.")
+	v.AddSeparator()
+}
+
+// addDHToyExample runs the DH math on tiny numbers so the shared-secret trick is
+// concrete and verifiable.
+func addDHToyExample(v *utils.Visualizer) {
+	p := big.NewInt(23) // small prime
+	g := big.NewInt(5)  // generator
+	a := big.NewInt(6)  // Alice secret
+	b := big.NewInt(15) // Bob secret
+
+	A := new(big.Int).Exp(g, a, p)  // 8
+	B := new(big.Int).Exp(g, b, p)  // 19
+	sA := new(big.Int).Exp(B, a, p) // 2
+	sB := new(big.Int).Exp(A, b, p) // 2
+	gab := new(big.Int).Exp(g, new(big.Int).Mul(a, b), p)
+
+	v.AddStep("📚 Worked example with tiny numbers (real p is 2048 bits)")
+	v.AddStep(fmt.Sprintf("Public agreement:  prime p = %s, generator g = %s", p, g))
+	v.AddStep(fmt.Sprintf("Alice's secret a = %s → public A = g^a mod p = 5^%s mod 23 = %s", a, a, A))
+	v.AddStep(fmt.Sprintf("Bob's   secret b = %s → public B = g^b mod p = 5^%s mod 23 = %s", b, b, B))
+	v.AddStep("They exchange A and B in the open, then each combines with their own secret:")
+	v.AddStep(fmt.Sprintf("  Alice: B^a mod p = %s^%s mod 23 = %s", B, a, sA))
+	v.AddStep(fmt.Sprintf("  Bob:   A^b mod p = %s^%s mod 23 = %s", A, b, sB))
+	v.AddStep(fmt.Sprintf("Both get %s, which equals g^(a·b) mod p = %s ✅", sA, gab))
+	v.AddNote("The eavesdropper knows p=23, g=5, A=8, B=19 but still cannot cheaply find a or b")
+	v.AddNote("to compute the shared 2 — and with a 2048-bit prime it is hopeless.")
+	v.AddSeparator()
+}
+
 // Process implements the Processor interface for Diffie-Hellman
 func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
 	startTime := time.Now()
 
 	// Introduction
-	v.AddStep("Diffie-Hellman Key Exchange")
-	v.AddStep("=============================")
-	v.AddNote("Diffie-Hellman is a method of securely exchanging cryptographic keys")
-	v.AddNote("It allows two parties to establish a shared secret over an insecure channel")
-	v.AddNote("The security is based on the difficulty of the discrete logarithm problem")
-	v.AddSeparator()
+	addDHIntro(v)
+	addDHToyExample(v)
 
 	// Step 1: Generate or load prime number
 	v.AddStep("Step 1: Prime Number Setup")
@@ -97,15 +138,16 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	p.prime = prime
 
 	// Show parameters
-	v.AddStep("Parameters:")
-	v.AddStep(fmt.Sprintf("Prime (p): %s", p.prime.Text(16)))
-	v.AddStep(fmt.Sprintf("Generator (g): %s", p.generator.Text(16)))
-	v.AddStep(fmt.Sprintf("Key Size: %d bits", p.keySize))
+	v.AddStep("Parameters (the real exchange — same math, huge numbers):")
+	v.AddStep(fmt.Sprintf("Prime (p): %d-bit value, first hex digits: %.32s…", p.prime.BitLen(), p.prime.Text(16)))
+	v.AddStep(fmt.Sprintf("Generator (g): %s", p.generator.Text(10)))
+	v.AddNote("p and g are public. The prime is large so the discrete-log problem is infeasible.")
 	v.AddSeparator()
 
 	// Step 2: Generate private keys
 	v.AddStep("Step 2: Private Key Generation")
 	v.AddStep("----------------------------")
+	v.AddNote("Each party picks a random SECRET exponent and never reveals it.")
 	alicePrivate, err := p.generatePrivateKey()
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to generate Alice's private key: %w", err)
@@ -114,17 +156,19 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to generate Bob's private key: %w", err)
 	}
-	v.AddStep(fmt.Sprintf("Alice's Private Key: %s", alicePrivate.Text(16)))
-	v.AddStep(fmt.Sprintf("Bob's Private Key: %s", bobPrivate.Text(16)))
+	v.AddStep(fmt.Sprintf("Alice's private a (secret): %.24s…", alicePrivate.Text(16)))
+	v.AddStep(fmt.Sprintf("Bob's private b (secret):   %.24s…", bobPrivate.Text(16)))
 	v.AddArrow()
 
 	// Step 3: Calculate public keys
 	v.AddStep("Step 3: Public Key Calculation")
 	v.AddStep("----------------------------")
+	v.AddStep("Each computes their public value  A = g^a mod p  (B = g^b mod p) and shares it.")
 	alicePublic := new(big.Int).Exp(p.generator, alicePrivate, prime)
 	bobPublic := new(big.Int).Exp(p.generator, bobPrivate, prime)
-	v.AddStep(fmt.Sprintf("Alice's Public Key: %s", alicePublic.Text(16)))
-	v.AddStep(fmt.Sprintf("Bob's Public Key: %s", bobPublic.Text(16)))
+	v.AddStep(fmt.Sprintf("Alice's public A = g^a mod p: %.24s…", alicePublic.Text(16)))
+	v.AddStep(fmt.Sprintf("Bob's public   B = g^b mod p: %.24s…", bobPublic.Text(16)))
+	v.AddNote("Recovering a from A means solving the discrete logarithm — infeasible for large p.")
 	v.AddArrow()
 
 	// Step 4: Key Authentication (Preventing MITM)
@@ -185,20 +229,25 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	// Step 5: Calculate shared secrets
 	v.AddStep("Step 5: Shared Secret Calculation")
 	v.AddStep("-------------------------------")
+	v.AddStep("Each raises the OTHER's public value to their own secret:")
+	v.AddStep("  Alice: s = B^a mod p     Bob: s = A^b mod p")
+	v.AddStep("Both equal g^(a·b) mod p — the same number, never sent over the wire.")
 	aliceShared := new(big.Int).Exp(bobPublic, alicePrivate, prime)
 	bobShared := new(big.Int).Exp(alicePublic, bobPrivate, prime)
-	v.AddStep(fmt.Sprintf("Alice's Shared Secret: %s", aliceShared.Text(16)))
-	v.AddStep(fmt.Sprintf("Bob's Shared Secret: %s", bobShared.Text(16)))
+	v.AddStep(fmt.Sprintf("Alice computes B^a mod p: %.24s…", aliceShared.Text(16)))
+	v.AddStep(fmt.Sprintf("Bob computes   A^b mod p: %.24s…", bobShared.Text(16)))
 	v.AddArrow()
 
 	// Step 6: Verify shared secrets match
 	v.AddStep("Step 6: Shared Secret Verification")
 	v.AddStep("--------------------------------")
 	if aliceShared.Cmp(bobShared) == 0 {
-		v.AddStep("✅ Shared secrets match!")
+		v.AddStep("✅ Shared secrets match! Both derived g^(a·b) mod p independently.")
 	} else {
 		return "", nil, fmt.Errorf("shared secrets do not match")
 	}
+	v.AddNote("An eavesdropper sees p, g, A and B — but computing g^(a·b) from those requires a")
+	v.AddNote("secret exponent. That asymmetry is the entire magic of Diffie-Hellman.")
 	v.AddSeparator()
 
 	// Step 7: Key Derivation Function (KDF)
@@ -316,15 +365,21 @@ func (p *DHProcessor) Process(_ string, _ string) (string, []string, error) {
 	v.AddStep("     - Key diversification")
 	v.AddSeparator()
 
-	v.AddStep("3. Best Practices:")
+	v.AddStep("3. Perfect Forward Secrecy (PFS):")
+	v.AddStep("   • Use fresh, EPHEMERAL DH keys per session (this is DHE / ECDHE).")
+	v.AddStep("   • Then a later key compromise cannot decrypt past recorded sessions —")
+	v.AddStep("     each session's secret vanished when its ephemeral keys were discarded.")
+	v.AddStep("   • This is why TLS 1.3 mandates ephemeral (EC)DH and dropped static RSA key exchange.")
+	v.AddSeparator()
+
+	v.AddStep("4. Best Practices:")
 	v.AddStep("   • Use authenticated key exchange (e.g., TLS)")
-	v.AddStep("   • Implement perfect forward secrecy")
-	v.AddStep("   • Use strong prime numbers")
-	v.AddStep("   • Regularly rotate keys")
+	v.AddStep("   • Use strong, standardized prime groups (RFC 3526/7919), not homemade ones")
+	v.AddStep("   • Prefer elliptic-curve DH (X25519, menu 9) — smaller, faster, safer defaults")
 	v.AddStep("   • Verify all signatures")
 	v.AddSeparator()
 
-	v.AddStep("4. Real-World Usage Examples:")
+	v.AddStep("5. Real-World Usage Examples:")
 	v.AddStep("   • TLS/SSL handshake:")
 	v.AddStep("     - Server sends certificate (signed public key)")
 	v.AddStep("     - Client verifies certificate")
