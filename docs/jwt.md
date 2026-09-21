@@ -1,15 +1,46 @@
 # JWT (JSON Web Token) 🪪
 
 ## Overview
-JWT (JSON Web Token) is a compact, URL-safe means of representing claims between two parties. CryptoLens implements JWT with support for multiple algorithms: HS256 (HMAC with SHA-256), RS256 (RSA with SHA-256), and EdDSA (Ed25519). JWTs are widely used for authentication and secure information exchange.
+A JSON Web Token is a compact, URL-safe token carrying **claims** (facts about a user or session). It is the standard for *stateless* authentication: a server signs a token, the client presents it, and the server trusts it without a database lookup because the signature proves it wasn't tampered with. CryptoLens signs (encode) and verifies (decode) JWTs with **HS256** (HMAC-SHA256), **RS256** (RSA signature), and **EdDSA** (Ed25519).
+
+> **A JWT is SIGNED, not ENCRYPTED.** The header and payload are only **Base64URL-encoded** — anyone can decode and read them. The signature proves *integrity* and *origin*, nothing more. **Never put passwords or secrets in the payload.**
+
+## Anatomy
+```
+header . payload . signature      (three Base64URL parts joined by dots)
+```
+- **Header** — signing algorithm and type, e.g. `{"alg":"HS256","typ":"JWT"}`
+- **Payload** — the claims (JSON): who the user is, what they can do, when the token expires
+- **Signature** — signs `base64url(header) + "." + base64url(payload)` so any change is detectable
+
+The Base64URL encoding is the URL-safe variant described in the [Base64 docs](base64.md) (`-`/`_` instead of `+`/`/`, no padding).
+
+### Standard claims
+| Claim | Meaning |
+|-------|---------|
+| `iss` | issuer | 
+| `sub` | subject (the user) |
+| `aud` | audience (intended recipient) |
+| `exp` | expiration time (verified — expired tokens are rejected) |
+| `nbf` | not-before time |
+| `iat` | issued-at time |
+| `jti` | unique token ID (for revocation) |
+
+## The Three Algorithms
+| Algorithm | Type | Signs with | Verifies with | Ties to |
+|-----------|------|-----------|---------------|---------|
+| **HS256** | Symmetric (HMAC-SHA256) | shared secret | same shared secret | [HMAC, menu 6](hmac.md) |
+| **RS256** | Asymmetric (RSA signature) | private key | public key | [RSA, menu 5](rsa.md) |
+| **EdDSA** | Asymmetric (Ed25519) | private key | public key | Curve25519, [menu 9](x25519.md) |
+
+Symmetric (HS256) suits a single trusted party; asymmetric (RS256/EdDSA) lets many parties *verify* with a public key while only the issuer can *sign*. EdDSA is the modern choice: small keys, fast, constant-time.
 
 ## Features
-- Multiple algorithm support: HS256, RS256, EdDSA
-- Secure key generation and management
-- File-based key storage for asymmetric keys
-- Step-by-step process visualization
-- Educational breakdown of JWT structure
-- Signature verification and claim validation
+- Sign (encode) and verify (decode) with HS256 / RS256 / EdDSA
+- Shows the exact **signing input** and how tampering breaks the signature
+- Enforces `exp`/`nbf` and pins the expected algorithm on verification
+- Secure key generation and PEM storage for asymmetric keys
+- Security section covering the `alg:none` and algorithm-confusion attacks
 
 ## Usage
 
@@ -191,6 +222,12 @@ Signature:  X-2C4a825HpA2hB7zhsef8S87YpYKosOKoHeMnLBK9Wyj41NCEwnEWlnYOzxI9WHu58D
 - HS256 secret key must be kept confidential
 - Automatic key generation and file-based storage
 - Signature verification ensures token integrity
+
+### JWT-Specific Attacks (and how CryptoLens avoids them)
+- **`alg: none` attack** — historically, some libraries accepted a token whose header declared `alg=none` and skipped signature verification entirely, allowing trivial forgery. CryptoLens pins the expected algorithm and rejects any token whose `alg` differs. See the **JWT None Algorithm** attack simulation (menu 12).
+- **Algorithm-confusion (RS256 → HS256)** — an attacker takes a server's *public* RSA key and signs a token with HS256, using that public key's bytes as the HMAC secret. A server that doesn't pin the algorithm verifies it as valid. Pinning `alg` prevents this.
+- **Reading the payload** — because the payload is only Base64URL-encoded, treat it as public. Put no secrets in it; protect confidentiality with transport encryption (TLS) or a separate encrypted token (JWE).
+- **Weak HS256 secrets** — short secrets can be brute-forced offline from a captured token. Use a long, random secret.
 
 ## Best Practices
 1. Use strong, random keys

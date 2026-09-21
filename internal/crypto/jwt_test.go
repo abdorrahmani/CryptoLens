@@ -3,6 +3,7 @@ package crypto
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -203,6 +204,30 @@ func TestJWTProcessor_InvalidInput(t *testing.T) {
 	// Test invalid operation
 	_, _, err = processor.Process("{}", "invalid-operation")
 	assert.Error(t, err)
+}
+
+// The output must teach the signed-not-encrypted distinction, the three-part
+// anatomy, the exact signing input, and the alg/none & confusion pitfalls.
+func TestJWTProcessor_EducationalContent(t *testing.T) {
+	processor := NewJWTProcessor()
+	require.NoError(t, processor.Configure(map[string]interface{}{
+		"algorithm": "HS256",
+		"secretKey": "test-secret-key",
+	}))
+	_, steps, err := processor.Process(`{"sub":"abc","name":"Jane"}`, "encrypt")
+	require.NoError(t, err)
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{
+		"SIGNED, not ENCRYPTED", // the key misconception
+		"header . payload . signature",
+		"Base64URL", // ties to menu 1
+		"What actually gets signed",
+		"signing input",
+		"alg: none",           // the classic attack
+		"Algorithm-confusion", // RS256->HS256
+	} {
+		assert.Contains(t, joined, needle, "expected JWT steps to contain %q", needle)
+	}
 }
 
 func TestJWTProcessor_ExpiredToken(t *testing.T) {
