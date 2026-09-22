@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-22
+
+This is a major release. CryptoLens now ships a full-screen terminal UI built on
+Bubble Tea, adds post-quantum cryptography, and removes the legacy line-based CLI.
+
+### Added
+- **Post-Quantum Cryptography**
+  - **ML-KEM** (Module-Lattice Key Encapsulation, FIPS 203) processor with
+    key encapsulation/decapsulation demo and educational content
+  - **ML-DSA** (Module-Lattice Digital Signature, FIPS 204) processor with
+    sign/verify demo and educational content
+  - New documentation for both (`docs/mlkem.md`, `docs/mldsa.md`)
+  - Registered in the factory and surfaced as menu options
+- **New Terminal UI (TUI)**
+  - Full-screen interactive interface built on `charmbracelet/bubbletea`,
+    `bubbles`, and `lipgloss`
+  - ASCII banner on the main menu and improved layout
+  - Styled step-by-step rendering with a scrollable viewport for algorithm output
+
+### Changed
+- **BREAKING: interface rewrite** — the interactive experience moved from the
+  old line-based CLI to the new Bubble Tea TUI. Menu navigation and output
+  rendering have changed accordingly.
+- **Expanded educational content and visualization** across the full algorithm
+  and attack set: Base64, Caesar, AES, SHA-256, RSA, HMAC, PBKDF, DH, X25519,
+  JWT, ChaCha20-Poly1305, and the ECB, nonce-reuse, brute-force, and JWT-none
+  attack simulations
+- Simplified benchmark input handling
+- Upgraded to Go 1.27.1 and updated all direct and indirect dependencies
+
+### Removed
+- **BREAKING:** legacy CLI package (`internal/cli/cli.go`, `display.go`,
+  `input.go`, `menu.go`, `interfaces.go` and their tests) and the
+  `internal/input` package (~1,100 lines)
+- Outdated `versioninfo` resource file
+
+### Documentation
+- README updated with ML-KEM/ML-DSA coverage, algorithm details, and
+  post-quantum requirements
+- New feature and installation documentation
+
+### CI
+- Updated GitHub Actions release workflow for GoReleaser: Go 1.27.1, refreshed
+  `checkout`/`setup-go` actions, race detection and latest linters in the
+  test/lint jobs, and improved GoReleaser permissions and setup
+
 ## [1.4.0] - 2025-07-27
 
 ### Added
@@ -271,6 +317,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test coverage
 - Code linting with golangci-lint
 
+[2.0.0]: https://github.com/abdorrahmani/cryptolens/releases/tag/v2.0.0
 [1.4.0]: https://github.com/abdorrahmani/cryptolens/releases/tag/v1.4.0
 [1.3.0]: https://github.com/abdorrahmani/cryptolens/releases/tag/v1.3.0
 [1.2.1]: https://github.com/abdorrahmani/cryptolens/releases/tag/v1.2.1
