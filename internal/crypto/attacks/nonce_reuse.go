@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/abdorrahmani/cryptolens/internal/utils"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
@@ -47,7 +46,7 @@ func (p *NonceReuseProcessor) Process(text string, operation string) (string, []
 	p.addIntroduction()
 
 	// Get second message
-	secondMessage := p.getSecondMessage()
+	secondMessage := p.getSecondMessage(text)
 
 	// Show input information
 	p.addInputInfo(text, secondMessage)
@@ -84,18 +83,15 @@ func (p *NonceReuseProcessor) addIntroduction() {
 	p.AddSeparator()
 }
 
-func (p *NonceReuseProcessor) getSecondMessage() string {
-	p.AddStep("Step 1: Message Collection")
+// getSecondMessage returns a fixed second plaintext to encrypt under the SAME
+// nonce. It is derived deterministically (no stdin) so the demo runs cleanly in
+// the TUI; only the fact that it differs from the first message matters.
+func (p *NonceReuseProcessor) getSecondMessage(text string) string {
+	p.AddStep("Step 1: Two messages, one nonce")
 	p.AddStep("----------------------")
-	fmt.Printf("\n%s", utils.DefaultTheme.Format("Enter a second message to encrypt with the same nonce: ", "brightGreen"))
-	var secondMessage string
-	if _, err := fmt.Scanln(&secondMessage); err != nil {
-		secondMessage = "This is a different message encrypted with the same nonce!"
-	}
-	if secondMessage == "" {
-		secondMessage = "This is a different message encrypted with the same nonce!"
-	}
-	return secondMessage
+	p.AddStep("To show the attack we encrypt a SECOND, different message under the same key")
+	p.AddStep("and nonce as the first — the exact mistake the attack punishes.")
+	return "Attack at dawn! (a different secret message)"
 }
 
 func (p *NonceReuseProcessor) addInputInfo(text, secondMessage string) {
@@ -191,6 +187,15 @@ func (p *NonceReuseProcessor) addTechnicalExplanation() {
 	p.AddStep("This is why nonce reuse is catastrophic - it reveals")
 	p.AddStep("the relationship between encrypted messages.")
 	p.AddSeparator()
+
+	p.AddStep("📉 What an attacker does with P1 ⊕ P2")
+	p.AddStep("This is a 'two-time pad'. Knowing the XOR of two plaintexts, an attacker uses")
+	p.AddStep("CRIB-DRAGGING: guess a likely word in one message (e.g. \"the\", \"password\"),")
+	p.AddStep("XOR it in, and read the corresponding bytes of the other message. Repeat until")
+	p.AddStep("both plaintexts fall out. No key is ever needed.")
+	p.AddStep("Worse for Poly1305/GCM: reusing a nonce also leaks the MAC's internal key,")
+	p.AddStep("letting an attacker FORGE valid tags — so authentication collapses too.")
+	p.AddSeparator()
 }
 
 func (p *NonceReuseProcessor) addSecurityImplications() {
@@ -205,13 +210,19 @@ func (p *NonceReuseProcessor) addSecurityImplications() {
 	p.AddStep("4. Authentication tags become meaningless")
 	p.AddStep("5. The entire security model collapses")
 
-	p.AddStep("✅ Best Practices")
+	p.AddStep("✅ Prevention & Solutions")
 	p.AddStep("===============")
-	p.AddStep("1. Never reuse nonces with the same key")
-	p.AddStep("2. Use a cryptographically secure random number generator")
-	p.AddStep("3. Consider using a counter-based nonce generation")
-	p.AddStep("4. Implement proper nonce management in your application")
-	p.AddStep("5. Use unique nonces for each encryption operation")
+	p.AddStep("1. Never reuse a (key, nonce) pair. Treat the nonce as use-once.")
+	p.AddStep("2. Random nonces: a 96-bit random nonce (crypto/rand) is safe only up to ~2^32")
+	p.AddStep("   messages per key. Beyond that, collisions become likely — rotate the key.")
+	p.AddStep("3. Counter nonces: a strictly increasing counter never repeats — ideal for a")
+	p.AddStep("   single sender; persist it so a restart doesn't reset it.")
+	p.AddStep("4. Big-nonce ciphers: XChaCha20-Poly1305 has a 192-bit nonce, so random nonces")
+	p.AddStep("   effectively never collide — the safest default for random-nonce designs.")
+	p.AddStep("5. Misuse-resistant AEAD: AES-GCM-SIV degrades gracefully if a nonce repeats.")
+	p.AddStep("6. See the ChaCha20-Poly1305 walkthrough (menu 11) for correct nonce handling.")
+	p.AddNote("Rule of thumb: if you cannot guarantee uniqueness, use a 192-bit-nonce or")
+	p.AddNote("misuse-resistant cipher rather than trusting your nonce generator.")
 }
 
 // xorBytes performs XOR operation on two byte slices

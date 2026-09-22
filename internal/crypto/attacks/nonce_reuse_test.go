@@ -128,6 +128,25 @@ func TestNonceReuseProcessor_Process(t *testing.T) {
 	}
 }
 
+// The nonce-reuse demo must run WITHOUT reading stdin (TUI-safe), explain the
+// two-time pad / crib-dragging, and give concrete prevention.
+func TestNonceReuseProcessor_EducationalContent(t *testing.T) {
+	p := NewNonceReuseProcessor()
+	if err := p.Configure(map[string]interface{}{"keySize": 256}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process("Hello world", "encrypt")
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{"CRIB-DRAGGING", "P1 ⊕ P2", "Prevention & Solutions", "XChaCha20-Poly1305"} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected nonce-reuse steps to contain %q", needle)
+		}
+	}
+}
+
 func TestNonceReuseProcessor_XorBytes(t *testing.T) {
 	tests := []struct {
 		name        string

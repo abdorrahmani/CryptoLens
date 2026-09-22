@@ -66,9 +66,17 @@ func (p *TimingAttackProcessor) Process(text string, operation string) (string, 
 	// Add introduction
 	p.AddStep("🔒 Timing Attack on HMAC Comparison")
 	p.AddStep("================================")
-	p.AddNote("Timing attacks exploit variations in execution time")
-	p.AddNote("In HMAC verification, byte-by-byte comparison can leak information")
-	p.AddNote("This simulation demonstrates why constant-time comparison is crucial")
+	p.AddNote("A timing attack is a SIDE-CHANNEL attack: it learns secrets not by breaking the")
+	p.AddNote("math, but by measuring how long an operation takes.")
+	p.AddSeparator()
+
+	p.AddStep("📈 How it works here")
+	p.AddStep("A naive tag check compares bytes left-to-right and RETURNS EARLY on the first")
+	p.AddStep("mismatch. So a guess with a correct first byte takes slightly longer than one")
+	p.AddStep("that is wrong immediately. By measuring which guess is slowest, an attacker")
+	p.AddStep("learns one byte at a time — turning an impossible 2^256 search into 256×32 tries.")
+	p.AddNote("This demo exaggerates the effect with a 1ms per-byte delay so the signal is")
+	p.AddNote("visible instantly; real attacks average many timing samples to see microseconds.")
 	p.AddSeparator()
 
 	// Run the attack simulation
@@ -127,16 +135,8 @@ func (s *TimingAttackSimulator) Simulate(input string) (*AttackResult, error) {
 		Statistics:   &AttackStatistics{},
 	}
 
-	// Calculate total work to be done
-	totalBytes := len(correctHMAC)
-	totalGuesses := totalBytes * 256 // 256 possible values per byte
-	fmt.Printf("\nTotal work: %d bytes × 256 guesses = %d comparisons\n", totalBytes, totalGuesses)
-	fmt.Printf("Estimated time: %.1f seconds\n\n", float64(totalGuesses)*0.001*float64(s.config.Iterations))
-
-	// Print initial progress line
-	fmt.Print("Progress: [", strings.Repeat("░", totalBytes), "] 0/", totalBytes, " bytes - ETA: calculating...")
-
-	// Run the attack
+	// Run the attack. (Progress is not streamed to stdout: this runs inside the
+	// TUI, which owns the screen — any direct print would corrupt the display.)
 	startTime := time.Now()
 	guessedHMAC, stats := s.runAttack(correctHMAC)
 	result.Duration = time.Since(startTime)
@@ -332,25 +332,23 @@ func (v *TimingAttackVisualizer) VisualizeSecurityNotes() []string {
 
 	v.AddSeparator()
 	v.AddStep("🔒 Security Implications:")
-	v.AddStep("1. Timing attacks can reveal secret information")
-	v.AddStep("2. Byte-by-byte comparison is vulnerable")
-	v.AddStep("3. Execution time variations leak information")
-	v.AddStep("4. Attackers can recover secrets byte by byte")
-
-	v.AddStep("✅ Best Practices:")
-	v.AddStep("1. Use constant-time comparison (crypto/subtle)")
-	v.AddStep("2. Never use regular comparison for secrets")
-	v.AddStep("3. Consider using HMAC verification libraries")
-	v.AddStep("4. Be aware of timing side channels")
-	v.AddStep("5. Test for timing vulnerabilities")
+	v.AddStep("1. A data-dependent early return leaks secret bytes through timing.")
+	v.AddStep("2. Any '==', bytes.Equal, or memcmp on a secret is vulnerable.")
+	v.AddStep("3. The leak is tiny per-comparison but averages out over many samples.")
+	v.AddStep("4. Applies to MAC/tag checks, password hashes, and API-key comparisons alike.")
 
 	v.AddSeparator()
-	v.AddStep("Go's Solution:")
-	v.AddStep("The crypto/subtle package provides ConstantTimeCompare:")
-	v.AddStep("import \"crypto/subtle\"")
-	v.AddStep("if subtle.ConstantTimeCompare(a, b) == 1 {")
-	v.AddStep("    // HMACs match")
-	v.AddStep("}")
+	v.AddStep("✅ Prevention & Solutions")
+	v.AddStep("The fix is CONSTANT-TIME comparison: always inspect every byte, regardless of")
+	v.AddStep("where the first difference is, so the time reveals nothing.")
+	v.AddStep("Go — compare raw tags in constant time:")
+	v.AddStep("    import \"crypto/subtle\"")
+	v.AddStep("    if subtle.ConstantTimeCompare(macA, macB) == 1 { /* match */ }")
+	v.AddStep("Go — for HMAC specifically, hmac.Equal does this for you:")
+	v.AddStep("    if hmac.Equal(expectedMAC, gotMAC) { /* match */ }")
+	v.AddStep("Other tactics: compare HASHES of the two values (a mismatch position is then")
+	v.AddStep("unpredictable), and never branch or log based on a partial secret match.")
+	v.AddNote("The HMAC walkthrough (menu 6) already uses hmac.Equal — this is why.")
 
 	return v.GetSteps()
 }
@@ -364,24 +362,10 @@ func NewConsoleProgressTracker() *ConsoleProgressTracker {
 	return &ConsoleProgressTracker{}
 }
 
-// UpdateProgress updates the progress display
-func (t *ConsoleProgressTracker) UpdateProgress(current, total int, eta time.Duration) {
-	progressBar := fmt.Sprintf("[%s%s]",
-		strings.Repeat("█", current),
-		strings.Repeat("░", total-current))
+// UpdateProgress is a no-op. Progress used to stream to stdout, but the attack
+// runs inside the TUI which owns the screen; live output there corrupts the
+// display, so progress is intentionally not printed.
+func (t *ConsoleProgressTracker) UpdateProgress(current, total int, eta time.Duration) {}
 
-	etaStr := utils.FormatDuration(eta)
-	if etaStr == "" {
-		etaStr = "calculating..."
-	}
-
-	fmt.Printf("\rProgress: %-40s %d/%d bytes - ETA: %-10s",
-		progressBar,
-		current, total,
-		etaStr)
-}
-
-// Complete marks the progress as complete
-func (t *ConsoleProgressTracker) Complete() {
-	fmt.Println()
-}
+// Complete is a no-op for the same reason as UpdateProgress.
+func (t *ConsoleProgressTracker) Complete() {}

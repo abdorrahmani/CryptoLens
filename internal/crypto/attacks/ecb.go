@@ -71,8 +71,18 @@ func (p *ECBProcessor) Process(text string, operation string) (string, []string,
 func (p *ECBProcessor) addIntroduction() {
 	p.AddStep("🔒 ECB Mode Pattern Leakage Demonstration")
 	p.AddStep("=====================================")
-	p.AddNote("ECB (Electronic Codebook) mode encrypts each block independently")
-	p.AddNote("This leads to pattern leakage when the same plaintext blocks are encrypted")
+	p.AddNote("ECB (Electronic Codebook) is the naive way to use a block cipher: chop the")
+	p.AddNote("message into 16-byte blocks and encrypt each one independently.")
+	p.AddSeparator()
+
+	p.AddStep("📈 Why ECB leaks")
+	p.AddStep("With no IV and no chaining, ECB is DETERMINISTIC: the same plaintext block always")
+	p.AddStep("produces the same ciphertext block, under the same key. So structure in the input")
+	p.AddStep("survives into the output — an attacker sees which blocks repeat and where.")
+	p.AddNote("The famous 'ECB penguin': encrypting a bitmap with ECB still shows the penguin,")
+	p.AddNote("because identical pixel blocks map to identical ciphertext blocks.")
+	p.AddSeparator()
+	p.AddNote("Tip: enter a message with a repeated 16-byte block (e.g. \"YELLOW SUBMARINEYELLOW SUBMARINE\") to see identical ciphertext blocks below.")
 	p.AddSeparator()
 }
 
@@ -181,16 +191,22 @@ func (p *ECBProcessor) analyzePatterns(paddedText, encrypted []byte) {
 func (p *ECBProcessor) addSecurityImplications() {
 	p.AddSeparator()
 	p.AddStep("⚠️ Security Implications:")
-	p.AddStep("1. Same plaintext blocks produce same ciphertext blocks")
-	p.AddStep("2. Patterns in plaintext are preserved in ciphertext")
-	p.AddStep("3. No semantic security - attacker can identify repeated blocks")
-	p.AddStep("4. No authentication - blocks can be reordered or modified")
+	p.AddStep("1. Same plaintext blocks produce same ciphertext blocks (no semantic security).")
+	p.AddStep("2. An attacker learns equality/structure without decrypting anything.")
+	p.AddStep("3. Blocks can be cut, pasted, or reordered undetected (no authentication).")
+	p.AddStep("4. Known-plaintext lets an attacker build a codebook of block→ciphertext.")
 
-	p.AddStep("✅ Best Practices:")
-	p.AddStep("1. Use authenticated encryption modes (GCM, CCM, OCB)")
-	p.AddStep("2. Use CBC mode with random IVs if AEAD is not available")
-	p.AddStep("3. Never use ECB mode for encrypting data")
-	p.AddStep("4. Always use unique IVs/nonces for each encryption")
+	p.AddSeparator()
+	p.AddStep("✅ Prevention & Solutions")
+	p.AddStep("The root cause is determinism with no per-message randomness and no integrity.")
+	p.AddStep("1. Prefer an AEAD mode: AES-GCM or ChaCha20-Poly1305 (menu 11) — encrypts AND")
+	p.AddStep("   authenticates, with a unique nonce per message so identical data differs.")
+	p.AddStep("2. If you must use CBC (menu 3), use a fresh random IV per message and add a")
+	p.AddStep("   separate MAC (encrypt-then-MAC) for integrity.")
+	p.AddStep("3. Never use ECB for anything but a single block of already-random data.")
+	p.AddStep("4. Always make encryption non-deterministic via an IV/nonce.")
+	p.AddNote("Compare with the AES walkthrough (menu 3): CBC chaining is exactly what stops the")
+	p.AddNote("pattern leakage you see above.")
 }
 
 // pad adds PKCS7 padding to the input

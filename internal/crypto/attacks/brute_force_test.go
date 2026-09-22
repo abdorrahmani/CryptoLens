@@ -1,9 +1,29 @@
 package attacks
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
+
+// The brute-force demo must explain the root cause (weak KDF, not a broken
+// cipher) and give concrete prevention with a memory-hard KDF.
+func TestBruteForceProcessor_EducationalContent(t *testing.T) {
+	p := NewBruteForceProcessor()
+	if err := p.Configure(map[string]interface{}{"iterations": 10}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process("password", "encrypt")
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{"Prevention & Solutions", "Argon2id", "salt", "menu 7"} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected brute-force steps to contain %q", needle)
+		}
+	}
+}
 
 func TestBruteForceProcessor_Configure(t *testing.T) {
 	tests := []struct {
