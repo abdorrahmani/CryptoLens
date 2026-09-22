@@ -7,10 +7,15 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
+
+// pkcs1v15Overhead is the number of bytes PKCS#1 v1.5 padding adds, so the
+// largest message is (modulus bytes − 11).
+const pkcs1v15Overhead = 11
 
 // RSAProcessor implements RSA encryption/decryption
 type RSAProcessor struct {
@@ -139,6 +144,11 @@ func (p *RSAProcessor) loadKeys(publicKeyFile, privateKeyFile string) error {
 	return nil
 }
 
+// maxMessageBytes is the largest plaintext this key can encrypt with PKCS#1 v1.5.
+func (p *RSAProcessor) maxMessageBytes() int {
+	return (p.publicKey.N.BitLen()+7)/8 - pkcs1v15Overhead
+}
+
 // Process handles RSA encryption/decryption
 func (p *RSAProcessor) Process(text string, operation string) (string, []string, error) {
 	// Validate operation type
@@ -148,104 +158,191 @@ func (p *RSAProcessor) Process(text string, operation string) (string, []string,
 
 	v := utils.NewVisualizer()
 
-	// Add introduction
-	v.AddStep("RSA Encryption Process")
-	v.AddStep("=============================")
-	v.AddNote("RSA is an asymmetric encryption algorithm")
-	v.AddNote(fmt.Sprintf("Using %d-bit keys", p.keySize))
-	v.AddSeparator()
-
-	// Show key information
-	v.AddStep("Key Information:")
-	v.AddStep(fmt.Sprintf("Public Key Size: %d bits", p.keySize))
-	v.AddStep(fmt.Sprintf("Private Key Size: %d bits", p.keySize))
-	v.AddSeparator()
+	p.addIntro(v)
+	p.addKeyDetails(v)
 
 	if operation == OperationDecrypt {
-		// Add decryption steps
-		v.AddStep("Decryption Process:")
-		v.AddStep("1. Base64 decode the input")
-		v.AddStep("2. Use private key to decrypt")
-		v.AddStep("3. Convert result to text")
-		v.AddSeparator()
-
-		// Show input
-		v.AddTextStep("Encrypted Input (Base64)", text)
-		v.AddArrow()
-
-		// Decode from base64
-		data, err := base64.StdEncoding.DecodeString(text)
-		if err != nil {
-			return "", nil, fmt.Errorf("invalid base64 string: %w", err)
-		}
-		v.AddHexStep("Decoded Data", data)
-		v.AddArrow()
-
-		// Decrypt
-		plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, p.privateKey, data)
-		if err != nil {
-			return "", nil, fmt.Errorf("failed to decrypt: %w", err)
-		}
-		v.AddTextStep("Decrypted Text", string(plaintext))
-
-		// Add security notes
-		v.AddSeparator()
-		v.AddNote("Security Considerations:")
-		v.AddNote("1. RSA decryption requires the private key")
-		v.AddNote("2. The private key must be kept secure")
-		v.AddNote("3. RSA is vulnerable to timing attacks if not properly implemented")
-		v.AddNote("4. The security depends on the key size and proper key management")
-
-		return string(plaintext), v.GetSteps(), nil
+		return p.decrypt(v, text)
 	}
+	return p.encrypt(v, text)
+}
 
-	// Add encryption steps
-	v.AddStep("Encryption Process:")
-	v.AddStep("1. Convert text to bytes")
-	v.AddStep("2. Use public key to encrypt")
-	v.AddStep("3. Base64 encode the result")
+// --- explanatory sections --------------------------------------------------
+
+func (p *RSAProcessor) addIntro(v *utils.Visualizer) {
+	v.AddStep("📌 What is RSA?")
+	v.AddStep("RSA (Rivest–Shamir–Adleman, 1977) was the first practical PUBLIC-KEY cipher.")
+	v.AddStep("It is ASYMMETRIC: it uses a KEY PAIR instead of one shared secret.")
+	v.AddStep("  • Public key  — shared with everyone; used to ENCRYPT (or verify signatures)")
+	v.AddStep("  • Private key — kept secret; used to DECRYPT (or create signatures)")
+	v.AddNote("Think of an open padlock you hand out freely: anyone can snap it shut on a box,")
+	v.AddNote("but only you hold the key that opens it. That asymmetry is the whole idea.")
 	v.AddSeparator()
 
-	// Show input
+	v.AddStep("📈 Why it is secure: the trapdoor")
+	v.AddStep("Multiplying two large primes p·q = n is easy; FACTORING n back into p and q is")
+	v.AddStep("infeasible for big enough n. The public key exposes n; only someone who knows")
+	v.AddStep("the factors can derive the private key. That one-way-with-a-trapdoor is RSA.")
+	v.AddSeparator()
+}
+
+// addKeyDetails shows the real parameters of the loaded key pair, plus a small
+// worked example the reader can actually follow.
+func (p *RSAProcessor) addKeyDetails(v *utils.Visualizer) {
+	v.AddStep("🔢 This key pair")
+	v.AddStep(fmt.Sprintf("Modulus size (n): %d bits (RSA-%d)", p.publicKey.N.BitLen(), p.keySize))
+	v.AddStep(fmt.Sprintf("Public exponent (e): %d", p.publicKey.E))
+	v.AddStep("Modulus n (first bytes): " + truncateHex(p.publicKey.N.Bytes(), 16))
+	v.AddStep(fmt.Sprintf("Private exponent d: kept secret (%d bits) — never shown or shared", p.privateKey.D.BitLen()))
+	v.AddStep(fmt.Sprintf("Max message size: %d bytes (modulus bytes − 11 for PKCS#1 v1.5 padding)", p.maxMessageBytes()))
+	v.AddNote("e is almost always 65537: it is prime and has few 1-bits, making encryption fast.")
+	v.AddSeparator()
+
+	addRSAToyExample(v)
+}
+
+// addRSAToyExample runs the full RSA math on tiny textbook primes so the reader
+// can see key generation, encryption and decryption end to end.
+func addRSAToyExample(v *utils.Visualizer) {
+	// Classic small example: p=61, q=53.
+	p := big.NewInt(61)
+	q := big.NewInt(53)
+	n := new(big.Int).Mul(p, q) // 3233
+	one := big.NewInt(1)
+	phi := new(big.Int).Mul(new(big.Int).Sub(p, one), new(big.Int).Sub(q, one)) // 3120
+	e := big.NewInt(17)
+	d := new(big.Int).ModInverse(e, phi) // 2753
+	m := big.NewInt(65)                  // toy "message"
+	c := new(big.Int).Exp(m, e, n)       // encrypt
+	dec := new(big.Int).Exp(c, d, n)     // decrypt
+
+	v.AddStep("📚 Worked example with tiny primes (real keys are hundreds of digits)")
+	v.AddStep(fmt.Sprintf("1. Pick primes p=%s, q=%s", p, q))
+	v.AddStep(fmt.Sprintf("2. Modulus  n = p·q = %s", n))
+	v.AddStep(fmt.Sprintf("3. Totient  φ(n) = (p−1)(q−1) = %s", phi))
+	v.AddStep(fmt.Sprintf("4. Public exponent  e = %s  (coprime with φ)", e))
+	v.AddStep(fmt.Sprintf("5. Private exponent d = e⁻¹ mod φ = %s   (since e·d mod φ = 1)", d))
+	v.AddStep(fmt.Sprintf("   Public key = (n=%s, e=%s)   Private key = (n=%s, d=%s)", n, e, n, d))
+	v.AddStep(fmt.Sprintf("6. Encrypt m=%s:  c = m^e mod n = %s", m, c))
+	v.AddStep(fmt.Sprintf("7. Decrypt c=%s:  m = c^d mod n = %s  ✅ recovered", c, dec))
+	v.AddNote("The security rests on step 5: without p and q you cannot compute φ, and without")
+	v.AddNote("φ you cannot find d. Factoring a 2048-bit n to get there is currently infeasible.")
+	v.AddSeparator()
+}
+
+// --- encryption ------------------------------------------------------------
+
+func (p *RSAProcessor) encrypt(v *utils.Visualizer, text string) (string, []string, error) {
+	v.AddStep("📈 Encryption steps")
+	v.AddStep("1. Convert the text to bytes (an integer m, with m < n)")
+	v.AddStep("2. Add PKCS#1 v1.5 padding with random bytes")
+	v.AddStep("3. Compute the ciphertext  c = m^e mod n  using the PUBLIC key")
+	v.AddStep("4. Base64-encode the result")
+	v.AddSeparator()
+
 	v.AddTextStep("Input Text", text)
-	v.AddArrow()
-
-	// Show text as bytes
 	v.AddHexStep("Text as Bytes", []byte(text))
+	v.AddStep(fmt.Sprintf("Message length: %d byte(s)", len(text)))
+
+	// Friendly size check before the library returns a cryptic error.
+	if maxLen := p.maxMessageBytes(); len(text) > maxLen {
+		return "", nil, fmt.Errorf(
+			"message is %d bytes but RSA-%d with PKCS#1 v1.5 can encrypt at most %d bytes; "+
+				"real systems use hybrid encryption (RSA to wrap an AES key, AES for the data)",
+			len(text), p.keySize, maxLen)
+	}
+	v.AddNote("RSA encrypts one number smaller than n, so the message must fit in one block.")
+	v.AddNote("PKCS#1 v1.5 also mixes in random bytes, so encrypting the same text twice gives")
+	v.AddNote("different ciphertexts — that randomization is essential to RSA's security.")
 	v.AddArrow()
 
-	// Encrypt
 	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, p.publicKey, []byte(text))
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to encrypt: %w", err)
 	}
-	v.AddHexStep("Encrypted Data", ciphertext)
+	v.AddStep(fmt.Sprintf("Ciphertext is exactly %d bytes = the modulus size, regardless of message length:", len(ciphertext)))
+	v.AddStep("Ciphertext (first bytes): " + truncateHex(ciphertext, 24))
 	v.AddArrow()
 
-	// Base64 encode the result
 	encoded := base64.StdEncoding.EncodeToString(ciphertext)
 	v.AddTextStep("Base64 Encoded Result", encoded)
 
-	// Add security notes
-	v.AddSeparator()
-	v.AddNote("Security Considerations:")
-	v.AddNote("1. RSA encryption uses the public key")
-	v.AddNote("2. The public key can be shared freely")
-	v.AddNote("3. RSA has a maximum message size based on key size")
-	v.AddNote("4. For large messages, use hybrid encryption (RSA + AES)")
-
-	// Add how it works
-	v.AddSeparator()
-	v.AddStep("How RSA Works:")
-	v.AddStep("1. Generate two large prime numbers (p and q)")
-	v.AddStep("2. Calculate n = p * q")
-	v.AddStep("3. Calculate φ(n) = (p-1) * (q-1)")
-	v.AddStep("4. Choose public exponent e (usually 65537)")
-	v.AddStep("5. Calculate private exponent d where (d * e) mod φ(n) = 1")
-	v.AddStep("6. Public key is (n, e)")
-	v.AddStep("7. Private key is (n, d)")
-	v.AddStep("8. Encryption: c = m^e mod n")
-	v.AddStep("9. Decryption: m = c^d mod n")
-
+	p.addSecurityNotes(v)
 	return encoded, v.GetSteps(), nil
+}
+
+// --- decryption ------------------------------------------------------------
+
+func (p *RSAProcessor) decrypt(v *utils.Visualizer, text string) (string, []string, error) {
+	v.AddStep("📈 Decryption steps (encryption in reverse)")
+	v.AddStep("1. Base64-decode the input to recover the ciphertext integer c")
+	v.AddStep("2. Compute  m = c^d mod n  using the PRIVATE key")
+	v.AddStep("3. Strip the PKCS#1 v1.5 padding")
+	v.AddStep("4. Interpret the remaining bytes as text")
+	v.AddSeparator()
+
+	v.AddTextStep("Encrypted Input (Base64)", text)
+	v.AddArrow()
+
+	data, err := base64.StdEncoding.DecodeString(text)
+	if err != nil {
+		return "", nil, fmt.Errorf("invalid base64 string: %w", err)
+	}
+	v.AddStep(fmt.Sprintf("Ciphertext: %d bytes", len(data)))
+	v.AddStep("Ciphertext (first bytes): " + truncateHex(data, 24))
+	v.AddArrow()
+
+	v.AddStep("Apply the private key: m = c^d mod n, then remove padding.")
+	plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, p.privateKey, data)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to decrypt (wrong key, corrupted data, or bad padding): %w", err)
+	}
+	v.AddArrow()
+	v.AddHexStep("Recovered Bytes", plaintext)
+	v.AddTextStep("Decrypted Text", string(plaintext))
+
+	p.addSecurityNotes(v)
+	return string(plaintext), v.GetSteps(), nil
+}
+
+// --- shared wrap-up --------------------------------------------------------
+
+func (p *RSAProcessor) addSecurityNotes(v *utils.Visualizer) {
+	v.AddSeparator()
+	v.AddStep("📚 RSA in the real world")
+	v.AddStep("• Hybrid encryption: RSA is slow and size-limited, so TLS/PGP use RSA only to")
+	v.AddStep("  wrap a random AES key, then encrypt the bulk data with AES (menu 3).")
+	v.AddStep("• Signatures: sign with the PRIVATE key, verify with the PUBLIC key — the")
+	v.AddStep("  reverse of encryption. This proves authenticity (see JWT RS256, menu 10).")
+	v.AddStep("• Padding matters: textbook RSA (no padding) is insecure. Modern code prefers")
+	v.AddStep("  OAEP over the PKCS#1 v1.5 used here, which has known padding-oracle pitfalls.")
+	v.AddSeparator()
+
+	v.AddStep("🔒 Security notes")
+	v.AddStep(fmt.Sprintf("• Use ≥ 2048-bit keys (this key is %d-bit); 1024-bit is deprecated.", p.keySize))
+	v.AddStep("• The private key must stay secret; anyone holding it can decrypt and sign.")
+	v.AddStep("• A large quantum computer running Shor's algorithm would break RSA — hence the")
+	v.AddStep("  ongoing shift toward post-quantum algorithms for long-lived secrets.")
+	v.AddStep("• For key agreement, elliptic-curve methods like X25519 (menu 9) are smaller/faster.")
+	v.AddNote("This tool stores keys as PEM files under keys/ for the demo; protect real private keys.")
+}
+
+// truncateHex renders up to n bytes of data as hex, appending an ellipsis and
+// the total length when the data is longer.
+func truncateHex(data []byte, n int) string {
+	shown := data
+	if len(shown) > n {
+		shown = shown[:n]
+	}
+	hexStr := ""
+	for i, b := range shown {
+		if i > 0 {
+			hexStr += " "
+		}
+		hexStr += fmt.Sprintf("%02x", b)
+	}
+	if len(data) > n {
+		hexStr += fmt.Sprintf(" … (%d bytes total)", len(data))
+	}
+	return hexStr
 }

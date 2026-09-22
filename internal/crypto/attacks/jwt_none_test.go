@@ -18,6 +18,25 @@ func TestNewJWTNoneProcessor(t *testing.T) {
 	}
 }
 
+// The JWT-none demo must explain the trust-the-token flaw and give a concrete,
+// pinned-algorithm prevention.
+func TestJWTNoneProcessor_EducationalContent(t *testing.T) {
+	p := NewJWTNoneProcessor()
+	if err := p.Configure(nil); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process("", "encrypt")
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{"Prevention & Solutions", "WithValidMethods", "algorithm-confusion", "SERVER decides"} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected JWT-none steps to contain %q", needle)
+		}
+	}
+}
+
 func TestJWTNoneProcessor_Configure(t *testing.T) {
 	processor := NewJWTNoneProcessor()
 

@@ -1,22 +1,23 @@
 # Caesar Cipher 🔄
 
 ## Overview
-The Caesar cipher is one of the oldest and simplest encryption techniques, where each letter in the plaintext is shifted by a fixed number of positions down the alphabet. CryptoLens implements the Caesar cipher with configurable shift values and detailed step-by-step process visualization.
+The Caesar cipher — named after Julius Caesar, who used it for military dispatches — is one of the oldest known encryption techniques. It is a **monoalphabetic substitution cipher**: every letter of the plaintext is replaced by the letter a fixed number of positions further along the alphabet, wrapping from Z back to A. CryptoLens implements it with a configurable shift and a detailed, teaching-oriented visualization that shows the substitution table, the per-letter arithmetic, and a live brute-force attack on the result.
+
+> **Not secure.** With only 25 usable keys, the Caesar cipher is broken instantly by brute force and leaks its key to basic frequency analysis. Use it to learn, never to protect real data.
 
 ## Features
-- Configurable shift value (default: 3)
-- Detailed step-by-step process visualization
-- Character position tracking
-- Alphabet reference
-- Case preservation
-- Non-alphabetic character handling
-- Security considerations
+- Configurable shift value (default: 3), with automatic normalization of negative and out-of-range shifts
+- Full plaintext↔ciphertext **substitution table** for the chosen shift
+- Per-character transformation with the exact modular arithmetic
+- Built-in **cryptanalysis**: brute-forces all 25 shifts and marks the real key
+- ROT13 and zero-shift special cases called out
+- Case preservation and non-alphabetic passthrough
 
 ## Usage
 
-### Command Line Interface
-```bash
-# Select Caesar Cipher from the main menu (Option 2)
+### Terminal User Interface
+```
+# Select Caesar Cipher from the main menu
 2. Caesar Cipher
 
 # Choose operation
@@ -26,159 +27,88 @@ The Caesar cipher is one of the oldest and simplest encryption techniques, where
 # Enter text to process
 Enter text to process: Your text here
 ```
+The default shift comes from `config.yaml` (`caesar.defaultShift`). Long output scrolls in the result pane (↑/↓); esc/enter returns to the menu.
 
 ### Programmatic Usage
 ```go
 import "github.com/abdorrahmani/cryptolens/internal/crypto"
 
-// Create Caesar processor
-caesarProcessor := crypto.NewCaesarProcessor()
+caesar := crypto.NewCaesarProcessor()
+caesar.Configure(map[string]interface{}{"shift": 5}) // optional; default is 3
 
-// Configure the processor (optional)
-config := map[string]interface{}{
-    "shift": 5,  // Optional: custom shift value
-}
-caesarProcessor.Configure(config)
-
-// Encrypt
-encrypted, steps, err := caesarProcessor.Process("Your text", "encrypt")
-
-// Decrypt
-decrypted, steps, err := caesarProcessor.Process(encrypted, "decrypt")
+encrypted, steps, err := caesar.Process("Your text", crypto.OperationEncrypt)
+decrypted, steps, err := caesar.Process(encrypted, crypto.OperationDecrypt)
 ```
 
-## Technical Details
+## How It Works
 
-### Alphabet Reference
+### The formula
+Number each letter `A=0, B=1, … Z=25`. Then:
+
 ```
-A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+Encrypt:  C = (P + shift) mod 26
+Decrypt:  P = (C − shift + 26) mod 26
 ```
 
-### Encryption Process
-1. Input validation
-2. Character position calculation
-3. Shift application
-4. Alphabet wrapping
-5. Case preservation
-6. Non-alphabetic character handling
+The `+ 26` and `mod 26` keep the result within 0–25 — that is the alphabet wrap-around (Z → A). Decrypting with shift *k* is identical to encrypting with shift `26 − k`.
 
-### Decryption Process
-1. Input validation
-2. Character position calculation
-3. Reverse shift application
-4. Alphabet wrapping
-5. Case preservation
-6. Non-alphabetic character handling
+### The substitution table
+A shift fully defines a fixed letter-for-letter mapping. For shift 3:
 
-### Features
-- Detailed character transformation steps
-- Position tracking
-- Shift value visualization
-- Case-sensitive processing
-- Non-alphabetic character preservation
+```
+Plain:  A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+Cipher: D E F G H I J K L M N O P Q R S T U V W X Y Z A B C
+```
+
+Because every `A` becomes `D`, every `E` becomes `H`, and so on, the letter-frequency pattern of the language survives — which is exactly what cryptanalysis exploits.
+
+### Shift normalization
+Only the shift *modulo 26* affects the output:
+- Shift **27** ≡ shift **1**
+- Shift **−3** ≡ shift **23**
+- Shift **0** (or 26) leaves text unchanged
+- Shift **13** is **ROT13**, its own inverse: applying it twice restores the original, so one operation both encodes and decodes.
 
 ## Examples
 
-### Encryption Example
-```bash
-Input: hi
-Output: kl
-
-Processing Steps:
-1. Character 'h':
-   Position: 7
-   Shift: +3
-   New Position: (7 + 3) % 26 = 10
-   Result: 'k'
-
-2. Character 'i':
-   Position: 8
-   Shift: +3
-   New Position: (8 + 3) % 26 = 11
-   Result: 'l'
+### Encryption (`Hi!`, shift 3 → `Kl!`)
+```
+'H' (pos  7) → (7 + 3) mod 26 = 10 → 'K'
+'i' (pos  8) → (8 + 3) mod 26 = 11 → 'l'
+'!'          → '!'  (non-letter, unchanged)
 ```
 
-### Decryption Example
-```bash
-Input: kl
-Output: hi
-
-Processing Steps:
-1. Character 'k':
-   Position: 10
-   Shift: -3
-   New Position: (10 - 3 + 26) % 26 = 7
-   Result: 'h'
-
-2. Character 'l':
-   Position: 11
-   Shift: -3
-   New Position: (11 - 3 + 26) % 26 = 8
-   Result: 'i'
+### Decryption via brute force (`KHOOR`, all shifts)
 ```
-
-## Implementation Details
-
-### Caesar Cipher Algorithm Steps
-1. Character Processing
-   - Calculate character position in alphabet
-   - Apply shift value
-   - Handle alphabet wrapping
-   - Preserve case
-   - Handle non-alphabetic characters
-
-2. Shift Application
-   - Encryption: Add shift value
-   - Decryption: Subtract shift value
-   - Use modulo 26 for wrapping
-
-### Key Characteristics
-- Fixed shift value for all characters
-- Alphabet wrapping (Z → A)
-- Case preservation
-- Non-alphabetic characters unchanged
-- Simple substitution cipher
+shift  1: JGNNQ
+shift  2: IFMMP
+shift  3: HELLO   ← the real key
+shift  4: GDKKN
+...
+```
+The reader can see the attack succeed: only shift 3 produces readable English.
 
 ## Security Considerations
 
-### Limitations
-1. Key Space
-   - Only 25 possible keys (shifts)
-   - Limited security options
+| Weakness | Why it matters |
+|----------|----------------|
+| Tiny key space (25 keys) | Brute force tries every key in microseconds |
+| Frequency preserved | `E`, `T`, `A` stand out; the shift is recoverable without brute force |
+| No diffusion | A letter always maps to the same output; patterns leak |
+| No key management | The same shift is reused for every message |
 
-2. Vulnerabilities
-   - Frequency analysis
-   - Brute force attacks
-   - No key management
-   - Same shift for all messages
-
-### Best Practices
-1. Not recommended for real-world security
-2. Use only for educational purposes
-3. Consider modern encryption for actual security needs
-4. Be aware of the limited key space
-5. Understand the vulnerability to frequency analysis
+**Historical progression:** the Vigenère cipher (a Caesar cipher whose shift changes per letter via a keyword) was the next step and resisted simple frequency analysis for centuries. Modern confidentiality uses AES (menu option 3) or ChaCha20-Poly1305 (option 11).
 
 ## Troubleshooting
 
-### Common Issues
-1. Shift Value Problems
-   - Verify shift is between 1-25
-   - Check for proper wrapping
-   - Validate character positions
-
-2. Character Handling
-   - Check case preservation
-   - Verify non-alphabetic handling
-   - Validate alphabet wrapping
-
-3. Decryption Failures
-   - Verify shift value matches encryption
-   - Check for proper wrapping
-   - Validate character positions
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Decryption gives gibberish | Shift doesn't match the one used to encrypt | Use the brute-force output to find the readable shift |
+| Output identical to input | Shift is 0 or a multiple of 26 | Choose a shift of 1–25 |
+| Numbers/symbols unchanged | By design — only A–Z/a–z are shifted | Expected behavior |
 
 ## References
-- [Caesar Cipher Wikipedia](https://en.wikipedia.org/wiki/Caesar_cipher)
-- [Substitution Cipher](https://en.wikipedia.org/wiki/Substitution_cipher)
-- [Cryptography Basics](https://en.wikipedia.org/wiki/Cryptography) 
+- [Caesar Cipher — Wikipedia](https://en.wikipedia.org/wiki/Caesar_cipher)
+- [Substitution Cipher — Wikipedia](https://en.wikipedia.org/wiki/Substitution_cipher)
+- [Frequency Analysis — Wikipedia](https://en.wikipedia.org/wiki/Frequency_analysis)
+- [ROT13 — Wikipedia](https://en.wikipedia.org/wiki/ROT13)

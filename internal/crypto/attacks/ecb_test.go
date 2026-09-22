@@ -2,8 +2,27 @@ package attacks
 
 import (
 	"encoding/base64"
+	"strings"
 	"testing"
 )
+
+// The ECB demo must explain the determinism cause and give concrete prevention.
+func TestECBProcessor_EducationalContent(t *testing.T) {
+	p := NewECBProcessor()
+	if err := p.Configure(map[string]interface{}{"keySize": 128}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := p.Process("YELLOW SUBMARINEYELLOW SUBMARINE", "encrypt")
+	if err != nil {
+		t.Fatalf("process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{"DETERMINISTIC", "penguin", "Prevention & Solutions", "AEAD", "Duplicate detected"} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected ECB steps to contain %q", needle)
+		}
+	}
+}
 
 func TestECBProcessor_Configure(t *testing.T) {
 	tests := []struct {

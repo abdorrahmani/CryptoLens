@@ -145,70 +145,69 @@ func TestX25519Performance(t *testing.T) {
 	}
 }
 
-func TestX25519TLSHandshake(t *testing.T) {
-	processor := NewX25519Processor()
-
-	// Run the TLS handshake simulation
-	result, steps, err := processor.Process("", "")
+func x25519Steps(t *testing.T) string {
+	t.Helper()
+	_, steps, err := NewX25519Processor().Process("", "")
 	if err != nil {
-		t.Fatalf("TLS handshake simulation failed: %v", err)
+		t.Fatalf("Process: %v", err)
 	}
+	return strings.Join(steps, "\n")
+}
 
-	// Verify TLS handshake steps are present
-	tlsSteps := []string{
-		"1. Client Hello",
-		"2. Server Hello",
-		"3. Server Certificate",
-		"4. Server Key Exchange",
-		"5. Client Key Exchange",
-		"6. Finished Messages",
-		"7. Derived Session Keys",
-	}
-
-	for _, expectedStep := range tlsSteps {
-		found := false
-		for _, step := range steps {
-			if step == expectedStep {
-				found = true
-				break
-			}
+// The output must teach the ECDH nature, clamping, scalar multiplication, the
+// need for authentication, and the TLS 1.3 role.
+func TestX25519_EducationalContent(t *testing.T) {
+	joined := x25519Steps(t)
+	for _, needle := range []string{
+		"ECDH",                  // elliptic-curve DH framing
+		"clamp",                 // clamping explained
+		"scalar multiplication", // the core op
+		"(a·b)·G",               // the symmetry
+		"MITM",                  // authentication requirement
+		"Perfect Forward Secrecy",
+		"TLS 1.3",
+	} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected X25519 steps to contain %q", needle)
 		}
-		if !found {
-			t.Errorf("TLS handshake step not found: %s", expectedStep)
-		}
-	}
-
-	// Verify result contains success message
-	if result == "" {
-		t.Error("TLS handshake simulation returned empty result")
 	}
 }
 
-func TestX25519SecurityWarnings(t *testing.T) {
-	processor := NewX25519Processor()
-	_, steps, err := processor.Process("", "")
-	if err != nil {
-		t.Fatalf("Process failed: %v", err)
+// Clamping must actually be applied: the generated private key's clamped bits
+// must satisfy the X25519 invariants.
+func TestX25519_ClampScalar(t *testing.T) {
+	raw := make([]byte, 32)
+	for i := range raw {
+		raw[i] = 0xff
 	}
-
-	expectedWarnings := []string{
-		"Resistant to side-channel attacks",
-		"Better protection against timing attacks",
-		"Constant-time operations by design",
-		"No known practical attacks against Curve25519",
-		"Smaller attack surface due to simpler implementation",
+	c := clampScalar(raw)
+	if c[0]&0x07 != 0 {
+		t.Errorf("low 3 bits not cleared: %08b", c[0])
 	}
+	if c[31]&0x80 != 0 {
+		t.Errorf("top bit not cleared: %08b", c[31])
+	}
+	if c[31]&0x40 == 0 {
+		t.Errorf("bit 254 not set: %08b", c[31])
+	}
+	// The original must be untouched (clampScalar copies).
+	if raw[0] != 0xff {
+		t.Error("clampScalar mutated its input")
+	}
+}
 
-	for _, warning := range expectedWarnings {
-		found := false
-		for _, step := range steps {
-			if strings.Contains(step, warning) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Security warning not found: %s", warning)
+// The security section must still surface the Curve25519 properties users rely on.
+func TestX25519_SecurityProperties(t *testing.T) {
+	joined := x25519Steps(t)
+	for _, warning := range []string{
+		"constant-time operations",
+		"resistant to side-channel attacks",
+		"better protection against timing attacks",
+		"no known practical attacks against Curve25519",
+		"smaller attack surface due to simpler implementation",
+	} {
+		if !strings.Contains(joined, warning) {
+			t.Errorf("security property not found: %s", warning)
 		}
 	}
 }

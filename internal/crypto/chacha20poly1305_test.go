@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -252,6 +253,27 @@ func TestChaCha20Poly1305Processor(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, plaintext, decrypted)
 		require.NotEmpty(t, steps)
+	})
+
+	t.Run("Educational Content", func(t *testing.T) {
+		// The output must teach the AEAD idea, the three inputs, nonce-reuse
+		// danger, the automatic tamper test, and the AES-GCM comparison.
+		p := NewChaCha20Poly1305Processor()
+		require.NoError(t, p.Configure(map[string]interface{}{"keyFile": "keys/test_cc_key.bin"}))
+		_, steps, err := p.Process("teach me", OperationEncrypt)
+		require.NoError(t, err)
+		joined := strings.Join(steps, "\n")
+		for _, needle := range []string{
+			"AEAD",
+			"CONFIDENTIALITY",
+			"INTEGRITY",
+			"Nonce reuse is catastrophic",
+			"Tamper test (automatic)",
+			"REJECTED",
+			"AES-GCM",
+		} {
+			require.Contains(t, joined, needle, "expected steps to contain %q", needle)
+		}
 	})
 
 	t.Run("Multiple Operations", func(t *testing.T) {

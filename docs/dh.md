@@ -1,17 +1,33 @@
 # Diffie-Hellman (DH) Key Exchange 🔑
 
 ## Overview
-Diffie-Hellman (DH) is a foundational cryptographic protocol that enables two parties to securely establish a shared secret over an insecure channel. CryptoLens implements DH with strong prime generation, RSA-based public key authentication, and demonstrates secure key derivation and symmetric encryption using the shared secret.
+Diffie-Hellman (1976) lets two parties who have never met agree on a shared secret over a channel an eavesdropper is fully watching — **without ever sending the secret**. It is *key agreement*, not encryption: the output is a shared key, which is then used with a symmetric cipher like AES. CryptoLens demonstrates the full authenticated flow — a live toy-math example, real 2048-bit exchange, RSA-signed public keys (anti-MITM), HKDF derivation, AES-GCM encryption, and an X25519 speed comparison.
+
+> **Paint analogy:** Alice and Bob publicly agree on a base color, each mixes in a secret color, and they swap mixtures. Each stirs in their own secret again and both reach the *same* final color — but an observer who saw the swapped mixtures can't "un-mix" them to recover the secrets.
+
+## The Math (worked example)
+The real exchange uses 2048-bit numbers no one can follow, so CryptoLens computes it live on tiny numbers first:
+```
+Public:  prime p = 23, generator g = 5
+Alice picks secret a = 6  → public A = 5^6  mod 23 = 8
+Bob   picks secret b = 15 → public B = 5^15 mod 23 = 19
+They swap A and B openly, then:
+  Alice: B^a mod p = 19^6  mod 23 = 2
+  Bob:   A^b mod p = 8^15  mod 23 = 2
+Both get 2 = g^(a·b) mod p   ✅
+```
+An eavesdropper knows `p, g, A, B` but recovering `a` from `A = g^a mod p` is the **discrete logarithm problem** — infeasible for a large prime. That one-way asymmetry is the whole trick.
 
 ## Features
-- Secure prime generation and management
-- Configurable key size (default: 2048 bits)
-- Generator selection
+- Live toy-math worked example (verifiable by hand) before the real 2048-bit exchange
+- Secure prime generation and management; configurable key size and generator
 - RSA signatures for public key authentication (prevents MITM)
-- HKDF-based key derivation
-- Demonstrates AES-GCM encryption with derived key
-- Step-by-step process visualization
-- Performance comparison with X25519
+- HKDF-based key derivation feeding AES-GCM encryption
+- Perfect Forward Secrecy explained
+- Step-by-step visualization and an X25519 performance comparison
+
+## Why It Matters: Perfect Forward Secrecy
+Using **fresh, ephemeral** DH keys per session (DHE / ECDHE) means a later compromise of long-term keys **cannot** decrypt past recorded sessions — each session's secret vanished when its ephemeral keys were discarded. This is why TLS 1.3 mandates ephemeral (EC)DH and dropped static RSA key exchange. For new systems, prefer elliptic-curve DH (**X25519**, menu 9): smaller, faster, and safer defaults than classic modular-exponent DH.
 
 ## Usage
 

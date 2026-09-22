@@ -46,114 +46,53 @@ func (p *X25519Processor) Configure(config map[string]interface{}) error {
 	return nil
 }
 
+// clampScalar applies the X25519 clamping to a 32-byte private scalar and
+// returns a copy, leaving the input untouched.
+func clampScalar(priv []byte) []byte {
+	c := make([]byte, len(priv))
+	copy(c, priv)
+	c[0] &= 248  // clear the low 3 bits  → scalar is a multiple of 8 (the cofactor)
+	c[31] &= 127 // clear the top bit     → scalar < 2^255
+	c[31] |= 64  // set bit 254           → fixes the high bit for a constant-time ladder
+	return c
+}
+
 // Process implements the Processor interface for X25519
 func (p *X25519Processor) Process(_ string, _ string) (string, []string, error) {
 	v := utils.NewVisualizer()
 	startTime := time.Now()
 
-	// Introduction
-	v.AddStep("X25519 Key Exchange (Curve25519)")
-	v.AddStep("=============================")
-	v.AddNote("X25519 is a modern key exchange protocol based on Curve25519")
-	v.AddNote("It's designed to be more secure and efficient than classic Diffie-Hellman")
-	v.AddNote("Widely used in modern protocols like TLS 1.3, Signal, and WireGuard")
-	v.AddSeparator()
+	addX25519Intro(v)
+	addX25519Diagram(v)
 
-	// Add ASCII Diagram
-	v.AddStep("Key Exchange Flow:")
-	v.AddStep("┌─────────┐                    ┌─────────┐")
-	v.AddStep("│  Alice  │                    │   Bob   │")
-	v.AddStep("└────┬────┘                    └────┬────┘")
-	v.AddStep("     │                               │")
-	v.AddStep("     │  PrivKey_A            PrivKey_B│")
-	v.AddStep("     │      │                    │    │")
-	v.AddStep("     │      v                    v    │")
-	v.AddStep("     │  PubKey_A ────────────> PubKey_B")
-	v.AddStep("     │      │                    │    │")
-	v.AddStep("     │      v                    v    │")
-	v.AddStep("     │  SharedSecret_A == SharedSecret_B")
-	v.AddStep("     │      │                    │    │")
-	v.AddStep("     │      v                    v    │")
-	v.AddStep("     │  HKDF -> AES Key    HKDF -> AES Key")
-	v.AddStep("     │      │                    │    │")
-	v.AddStep("     │      v                    v    │")
-	v.AddStep("     │  Encrypt/Decrypt    Encrypt/Decrypt")
-	v.AddStep("     │                               │")
-	v.AddStep("┌────┴────┐                    ┌────┴────┐")
-	v.AddStep("│  Alice  │                    │   Bob   │")
-	v.AddStep("└─────────┘                    └─────────┘")
-	v.AddSeparator()
-
-	v.AddStep("Legend:")
-	v.AddStep("• PrivKey_X: Private key (never shared)")
-	v.AddStep("• PubKey_X:  Public key (exchanged)")
-	v.AddStep("• SharedSecret_X: Computed shared secret")
-	v.AddStep("• HKDF: Key derivation function")
-	v.AddStep("• AES Key: Derived encryption key")
-	v.AddSeparator()
-
-	// Tutorial Section
-	v.AddStep("📚 Tutorial: Why X25519 Replaced Classic Diffie-Hellman")
-	v.AddStep("=================================================")
-	v.AddStep("1. Enhanced Security:")
-	v.AddStep("   • Resistant to side-channel attacks")
-	v.AddStep("   • Better protection against timing attacks")
-	v.AddStep("   • Constant-time operations by design")
-	v.AddStep("   • No known practical attacks against Curve25519")
-	v.AddStep("   • Smaller attack surface due to simpler implementation")
-	v.AddSeparator()
-
-	v.AddStep("2. Implementation Advantages:")
-	v.AddStep("   • Designed to prevent common implementation errors")
-	v.AddStep("   • No need to validate curve points (built-in safety)")
-	v.AddStep("   • Simpler parameter selection (fixed curve)")
-	v.AddStep("   • No need to generate or validate prime numbers")
-	v.AddStep("   • Reduced risk of weak parameter choices")
-	v.AddSeparator()
-
-	v.AddStep("3. Performance Benefits:")
-	v.AddStep("   • Faster computation (especially on modern CPUs)")
-	v.AddStep("   • Lower power consumption")
-	v.AddStep("   • Better performance on embedded devices")
-	v.AddStep("   • Smaller key sizes (32 bytes vs 2048+ bits)")
-	v.AddStep("   • More efficient for mobile and IoT devices")
-	v.AddSeparator()
-
-	v.AddStep("4. Real-World Adoption:")
-	v.AddStep("   • TLS 1.3 (replaced DH with X25519)")
-	v.AddStep("   • Signal Protocol")
-	v.AddStep("   • WireGuard VPN")
-	v.AddStep("   • Modern SSH implementations")
-	v.AddStep("   • Many other secure messaging apps")
-	v.AddSeparator()
-
-	// Step 1: Generate private keys
+	// Step 1: Generate private keys (with clamping explained).
 	v.AddStep("Step 1: Private Key Generation")
 	v.AddStep("---------------------------")
-	alicePrivate := make([]byte, 32)
-	bobPrivate := make([]byte, 32)
-	if _, err := rand.Read(alicePrivate); err != nil {
+	v.AddStep("Each private key is just 32 random bytes, then 'clamped' — a few fixed bits are")
+	v.AddStep("forced so every key is a safe scalar and the multiplication runs in constant time:")
+	v.AddStep("  byte[0]  &= 248  → clear low 3 bits (multiple of the cofactor 8)")
+	v.AddStep("  byte[31] &= 127  → clear the top bit (keep scalar below 2^255)")
+	v.AddStep("  byte[31] |= 64   → set bit 254 (fixed high bit ⇒ constant-time ladder)")
+	rawAlice := make([]byte, 32)
+	rawBob := make([]byte, 32)
+	if _, err := rand.Read(rawAlice); err != nil {
 		return "", nil, fmt.Errorf("failed to generate Alice's private key: %w", err)
 	}
-	if _, err := rand.Read(bobPrivate); err != nil {
+	if _, err := rand.Read(rawBob); err != nil {
 		return "", nil, fmt.Errorf("failed to generate Bob's private key: %w", err)
 	}
-
-	// Ensure private keys are valid scalars
-	alicePrivate[0] &= 248
-	alicePrivate[31] &= 127
-	alicePrivate[31] |= 64
-	bobPrivate[0] &= 248
-	bobPrivate[31] &= 127
-	bobPrivate[31] |= 64
-
-	v.AddStep(fmt.Sprintf("Alice's Private Key: %x", alicePrivate))
-	v.AddStep(fmt.Sprintf("Bob's Private Key: %x", bobPrivate))
+	alicePrivate := clampScalar(rawAlice)
+	bobPrivate := clampScalar(rawBob)
+	v.AddStep(fmt.Sprintf("Alice's clamped private key: %x", alicePrivate))
+	v.AddStep(fmt.Sprintf("Bob's   clamped private key: %x", bobPrivate))
+	v.AddNote("Clamping is unique to Curve25519 — it removes whole classes of implementation bugs.")
 	v.AddArrow()
 
-	// Step 2: Calculate public keys
+	// Step 2: Public keys = scalar * basepoint.
 	v.AddStep("Step 2: Public Key Calculation")
 	v.AddStep("----------------------------")
+	v.AddStep("Public key = private_scalar · G, where G is Curve25519's fixed base point (u=9).")
+	v.AddStep("This 'scalar multiplication' is the elliptic-curve analogue of g^a mod p in DH.")
 	alicePublic, err := curve25519.X25519(alicePrivate, curve25519.Basepoint)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to calculate Alice's public key: %w", err)
@@ -162,13 +101,17 @@ func (p *X25519Processor) Process(_ string, _ string) (string, []string, error) 
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to calculate Bob's public key: %w", err)
 	}
-	v.AddStep(fmt.Sprintf("Alice's Public Key: %x", alicePublic))
-	v.AddStep(fmt.Sprintf("Bob's Public Key: %x", bobPublic))
+	v.AddStep(fmt.Sprintf("Alice's public key (32 bytes): %x", alicePublic))
+	v.AddStep(fmt.Sprintf("Bob's   public key (32 bytes): %x", bobPublic))
+	v.AddNote("Reversing this (finding the scalar from the point) is the elliptic-curve discrete")
+	v.AddNote("log problem — infeasible. Note keys are 32 bytes vs 256+ bytes for 2048-bit DH.")
 	v.AddArrow()
 
-	// Step 3: Calculate shared secrets
+	// Step 3: Shared secret = my_scalar * peer_public.
 	v.AddStep("Step 3: Shared Secret Calculation")
 	v.AddStep("-------------------------------")
+	v.AddStep("Each multiplies their own scalar by the OTHER's public point:")
+	v.AddStep("  Alice: a·(b·G)     Bob: b·(a·G)     both equal (a·b)·G")
 	aliceShared, err := curve25519.X25519(alicePrivate, bobPublic)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to calculate Alice's shared secret: %w", err)
@@ -177,338 +120,160 @@ func (p *X25519Processor) Process(_ string, _ string) (string, []string, error) 
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to calculate Bob's shared secret: %w", err)
 	}
-	v.AddStep(fmt.Sprintf("Alice's Shared Secret: %x", aliceShared))
-	v.AddStep(fmt.Sprintf("Bob's Shared Secret: %x", bobShared))
+	v.AddStep(fmt.Sprintf("Alice computes a·B: %x", aliceShared))
+	v.AddStep(fmt.Sprintf("Bob   computes b·A: %x", bobShared))
 	v.AddArrow()
 
-	// Step 4: Verify shared secrets match
+	// Step 4: Verify.
 	v.AddStep("Step 4: Shared Secret Verification")
 	v.AddStep("--------------------------------")
 	if bytes.Equal(aliceShared, bobShared) {
-		v.AddStep("✅ Shared secrets match!")
+		v.AddStep("✅ Shared secrets match! Both derived (a·b)·G independently.")
 	} else {
 		return "", nil, fmt.Errorf("shared secrets do not match")
 	}
+	v.AddNote("An eavesdropper sees A and B (both public points) but cannot compute (a·b)·G.")
 	v.AddSeparator()
 
-	// Step 5: Key Derivation Function (KDF)
-	v.AddStep("Step 5: Key Derivation")
+	// Step 5: HKDF.
+	v.AddStep("Step 5: Key Derivation (HKDF)")
 	v.AddStep("---------------------")
-	// Use HKDF to derive a secure key from the shared secret
-	hkdf := hkdf.New(sha256.New, aliceShared, []byte("CryptoLens-X25519-KDF"), []byte("CryptoLens-X25519-Info"))
+	v.AddStep("The raw shared point is not used directly as a key — it is run through HKDF to")
+	v.AddStep("produce a uniform, purpose-bound symmetric key.")
+	h := hkdf.New(sha256.New, aliceShared, []byte("CryptoLens-X25519-KDF"), []byte("CryptoLens-X25519-Info"))
 	derivedKey := make([]byte, 32)
-	if _, err := io.ReadFull(hkdf, derivedKey); err != nil {
+	if _, err := io.ReadFull(h, derivedKey); err != nil {
 		return "", nil, fmt.Errorf("failed to derive key: %w", err)
 	}
-	v.AddStep(fmt.Sprintf("Derived key (using HKDF): %x", derivedKey))
+	v.AddStep(fmt.Sprintf("Derived AES key (HKDF-SHA256): %x", derivedKey))
+	v.AddNote("HKDF gives key separation and diversification — see PBKDF/KDF concepts in menu 7.")
 	v.AddSeparator()
 
-	// Step 6: Demonstrate AES Encryption with Shared Secret
-	v.AddStep("Step 6: Using Shared Secret for AES Encryption")
+	// Step 6: AES-GCM demo.
+	v.AddStep("Step 6: Using the Shared Key for AES-GCM Encryption")
 	v.AddStep("-------------------------------------------")
-	v.AddNote("Now we'll demonstrate how the shared secret can be used for symmetric encryption")
-
-	// Create a sample message
 	sampleMessage := "Hello, this is a secret message!"
 	v.AddStep(fmt.Sprintf("Original Message: %s", sampleMessage))
-
-	// Create AES cipher
 	block, err := aes.NewCipher(derivedKey)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create AES cipher: %w", err)
 	}
-
-	// Create GCM mode
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create GCM mode: %w", err)
 	}
-
-	// Generate nonce
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
-
-	// Encrypt the message
 	ciphertext := gcm.Seal(nonce, nonce, []byte(sampleMessage), nil)
-	v.AddStep(fmt.Sprintf("Encrypted Message (Base64): %s", base64.StdEncoding.EncodeToString(ciphertext)))
-
-	// Decrypt the message
+	v.AddStep(fmt.Sprintf("Encrypted (Base64): %s", base64.StdEncoding.EncodeToString(ciphertext)))
 	nonceSize := gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
 		return "", nil, fmt.Errorf("ciphertext too short")
 	}
-
-	nonce, ciphertext = ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	nonce, ct := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ct, nil)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
-
 	v.AddStep(fmt.Sprintf("Decrypted Message: %s", string(plaintext)))
-	v.AddArrow()
-
-	// Performance Comparison
-	v.AddStep("⚡ Performance Comparison")
-	v.AddStep("=======================")
-	x25519Duration := time.Since(startTime)
-	v.AddStep(fmt.Sprintf("X25519 Execution Time: %v", x25519Duration))
-
-	// Measure DH performance without running the full process
-	dhStart := time.Now()
-	prime := new(big.Int).SetInt64(2)
-	prime.Exp(prime, big.NewInt(2048), nil)
-	prime.Sub(prime, big.NewInt(1))
-	generator := big.NewInt(2)
-	alicePrivateDH, _ := rand.Int(rand.Reader, prime)
-	bobPrivateDH, _ := rand.Int(rand.Reader, prime)
-	alicePublicDH := new(big.Int).Exp(generator, alicePrivateDH, prime)
-	bobPublicDH := new(big.Int).Exp(generator, bobPrivateDH, prime)
-	_ = new(big.Int).Exp(bobPublicDH, alicePrivateDH, prime) // Calculate shared secret
-	_ = new(big.Int).Exp(alicePublicDH, bobPrivateDH, prime) // Calculate shared secret
-	dhDuration := time.Since(dhStart)
-	v.AddStep(fmt.Sprintf("Classic DH Execution Time: %v", dhDuration))
-	v.AddStep(fmt.Sprintf("X25519 is %.2fx faster than Classic DH", float64(dhDuration)/float64(x25519Duration)))
+	v.AddNote("This is exactly the TLS pattern: X25519 agrees a key, an AEAD cipher protects data.")
 	v.AddSeparator()
 
-	// Explain the process
-	v.AddStep("How it works:")
-	v.AddStep("1. X25519 establishes a shared secret between Alice and Bob")
-	v.AddStep("2. The shared secret is used to derive an AES key")
-	v.AddStep("3. The AES key is used to encrypt/decrypt messages")
-	v.AddStep("4. Both parties can encrypt/decrypt using the same key")
-	v.AddSeparator()
+	addX25519Performance(v, startTime)
+	addX25519Security(v)
+	addTLS13Flow(v)
 
-	// Security Considerations
-	v.AddStep("🔒 Security Considerations")
-	v.AddStep("========================")
-	v.AddStep("1. Key Exchange Security:")
-	v.AddStep("   • Curve25519 is designed to be secure by default")
-	v.AddStep("   • No need for complex parameter validation")
-	v.AddStep("   • Built-in protection against common attacks")
-	v.AddStep("   • Constant-time operations prevent timing attacks")
-	v.AddSeparator()
-
-	v.AddStep("2. Key Derivation Function (KDF):")
-	v.AddStep("   • Raw shared secret should never be used directly")
-	v.AddStep("   • KDF provides additional security properties:")
-	v.AddStep("     - Key stretching")
-	v.AddStep("     - Key separation")
-	v.AddStep("     - Key diversification")
-	v.AddSeparator()
-
-	v.AddStep("3. Best Practices:")
-	v.AddStep("   • Use authenticated key exchange (e.g., TLS)")
-	v.AddStep("   • Implement perfect forward secrecy")
-	v.AddStep("   • Use strong random number generation")
-	v.AddStep("   • Regularly rotate keys")
-	v.AddStep("   • Verify all signatures in production")
-	v.AddSeparator()
-
-	v.AddStep("4. Real-World Usage Examples:")
-	v.AddStep("   • TLS 1.3 handshake:")
-	v.AddStep("     - Server sends certificate")
-	v.AddStep("     - Client verifies certificate")
-	v.AddStep("     - X25519 key exchange follows")
-	v.AddStep("     - All messages authenticated")
-	v.AddStep("   • Signal Protocol")
-	v.AddStep("   • WireGuard VPN")
-	v.AddStep("   • Modern SSH implementations")
-	v.AddSeparator()
-
-	// Add TLS 1.3 Connection Section
-	v.AddStep("🔐 TLS 1.3 Connection Example")
-	v.AddStep("==========================")
-	v.AddStep("In TLS 1.3, only modern key exchange algorithms are allowed:")
-	v.AddStep("1. X25519 (Curve25519)")
-	v.AddStep("2. P-256 (NIST P-256)")
-	v.AddStep("3. P-384 (NIST P-384)")
-	v.AddStep("4. P-521 (NIST P-521)")
-	v.AddStep("5. X448 (Curve448)")
-	v.AddStep("6. FFDHE2048 (Finite Field DH)")
-	v.AddStep("7. FFDHE3072 (Finite Field DH)")
-	v.AddStep("8. FFDHE4096 (Finite Field DH)")
-	v.AddSeparator()
-
-	v.AddStep("TLS 1.3 Connection Flow:")
-	v.AddStep("1. Client Hello:")
-	v.AddStep("   • Supported cipher suites")
-	v.AddStep("   • Supported key exchange groups")
-	v.AddStep("   • Random nonce")
-	v.AddStep("2. Server Hello:")
-	v.AddStep("   • Selected cipher suite")
-	v.AddStep("   • Selected key exchange group")
-	v.AddStep("   • Random nonce")
-	v.AddStep("3. Key Exchange:")
-	v.AddStep("   • Server's ephemeral public key")
-	v.AddStep("   • Server's signature")
-	v.AddStep("4. Client Key Exchange:")
-	v.AddStep("   • Client's ephemeral public key")
-	v.AddStep("5. Finished:")
-	v.AddStep("   • Both parties verify the handshake")
-	v.AddStep("   • Derive session keys")
-	v.AddSeparator()
-
-	v.AddStep("Security Requirements:")
-	v.AddStep("1. Perfect Forward Secrecy (PFS)")
-	v.AddStep("   • Ephemeral key pairs for each session")
-	v.AddStep("   • Keys are never reused")
-	v.AddStep("2. Key Exchange Security")
-	v.AddStep("   • Must use approved curves")
-	v.AddStep("   • Must implement proper validation")
-	v.AddStep("3. Authentication")
-	v.AddStep("   • Server authentication via certificates")
-	v.AddStep("   • Optional client authentication")
-	v.AddStep("4. Key Derivation")
-	v.AddStep("   • HKDF for key derivation")
-	v.AddStep("   • Separate keys for different purposes")
-	v.AddSeparator()
-
-	v.AddStep("Production Considerations:")
-	v.AddStep("1. Certificate Management")
-	v.AddStep("   • Use trusted Certificate Authorities")
-	v.AddStep("   • Regular certificate rotation")
-	v.AddStep("   • Proper key storage")
-	v.AddStep("2. Protocol Configuration")
-	v.AddStep("   • Disable legacy protocols")
-	v.AddStep("   • Enforce strong cipher suites")
-	v.AddStep("   • Configure proper timeouts")
-	v.AddStep("3. Monitoring and Logging")
-	v.AddStep("   • Track handshake failures")
-	v.AddStep("   • Monitor certificate expiration")
-	v.AddStep("   • Log security events")
-	v.AddSeparator()
-
-	// Add Security Warnings Section
-	v.AddStep("⚠️ CRITICAL SECURITY WARNINGS")
-	v.AddStep("==========================")
-	v.AddStep("1. Authentication is REQUIRED:")
-	v.AddStep("   • X25519 is ONLY for key exchange")
-	v.AddStep("   • MUST be combined with authentication")
-	v.AddStep("   • Common authentication methods:")
-	v.AddStep("     - Digital signatures (RSA, ECDSA)")
-	v.AddStep("     - TLS certificates")
-	v.AddStep("     - Pre-shared keys")
-	v.AddStep("   • Without authentication, vulnerable to MITM attacks")
-	v.AddStep("   • Example: TLS 1.3 uses X25519 + certificates")
-	v.AddSeparator()
-
-	v.AddStep("2. Implementation Security:")
-	v.AddStep("   • MUST use constant-time implementation")
-	v.AddStep("   • Curve25519 is designed for constant-time operations")
-	v.AddStep("   • Never implement your own curve arithmetic")
-	v.AddStep("   • Use well-audited libraries (like golang.org/x/crypto/curve25519)")
-	v.AddStep("   • Avoid side-channel attacks:")
-	v.AddStep("     - Timing attacks")
-	v.AddStep("     - Power analysis")
-	v.AddStep("     - Cache attacks")
-	v.AddSeparator()
-
-	v.AddStep("3. Key Management:")
-	v.AddStep("   • Generate private keys securely")
-	v.AddStep("   • Never reuse private keys")
-	v.AddStep("   • Use proper key derivation (HKDF)")
-	v.AddStep("   • Store private keys securely")
-	v.AddStep("   • Implement key rotation")
-	v.AddSeparator()
-
-	v.AddStep("4. Common Pitfalls:")
-	v.AddStep("   • Using X25519 without authentication")
-	v.AddStep("   • Reusing private keys")
-	v.AddStep("   • Implementing custom curve arithmetic")
-	v.AddStep("   • Using non-constant-time operations")
-	v.AddStep("   • Skipping key validation")
-	v.AddStep("   • Not using proper key derivation")
-	v.AddSeparator()
-
-	v.AddStep("5. Best Practices:")
-	v.AddStep("   • Always use authenticated key exchange")
-	v.AddStep("   • Use constant-time implementations")
-	v.AddStep("   • Implement proper key validation")
-	v.AddStep("   • Use secure random number generation")
-	v.AddStep("   • Follow protocol specifications exactly")
-	v.AddStep("   • Regular security audits")
-	v.AddSeparator()
-
-	// Add TLS Handshake Simulation
-	v.AddStep("🔄 TLS 1.3 Handshake Simulation")
-	v.AddStep("============================")
-	v.AddStep("Simulating a TLS 1.3 handshake with X25519:")
-	v.AddSeparator()
-
-	// Client Hello
-	v.AddStep("1. Client Hello")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ Client Random: %x", make([]byte, 32)))
-	v.AddStep("   │ Supported Groups: X25519, P-256     │")
-	v.AddStep("   │ Cipher Suites:                      │")
-	v.AddStep("   │   • TLS_AES_256_GCM_SHA384         │")
-	v.AddStep("   │   • TLS_CHACHA20_POLY1305_SHA256   │")
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Server Hello
-	v.AddStep("2. Server Hello")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ Server Random: %x", make([]byte, 32)))
-	v.AddStep("   │ Selected Group: X25519              │")
-	v.AddStep("   │ Selected Cipher: TLS_AES_256_GCM_SHA384")
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Server Certificate
-	v.AddStep("3. Server Certificate")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep("   │ Certificate Chain:                  │")
-	v.AddStep("   │   • Server Certificate (RSA-2048)   │")
-	v.AddStep("   │   • Intermediate CA (RSA-2048)      │")
-	v.AddStep("   │   • Root CA (RSA-4096)              │")
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Server Key Exchange
-	v.AddStep("4. Server Key Exchange")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ X25519 Public Key: %x", alicePublic))
-	v.AddStep(fmt.Sprintf("   │ Signature: %x", make([]byte, 256)))
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Client Key Exchange
-	v.AddStep("5. Client Key Exchange")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ X25519 Public Key: %x", bobPublic))
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Finished Messages
-	v.AddStep("6. Finished Messages")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ Server Finished: %x", make([]byte, 32)))
-	v.AddStep(fmt.Sprintf("   │ Client Finished: %x", make([]byte, 32)))
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	// Session Keys
-	v.AddStep("7. Derived Session Keys")
-	v.AddStep("   ┌─────────────────────────────────────┐")
-	v.AddStep(fmt.Sprintf("   │ Client Write Key: %x", derivedKey))
-	v.AddStep(fmt.Sprintf("   │ Server Write Key: %x", derivedKey))
-	v.AddStep(fmt.Sprintf("   │ Client Write IV: %x", make([]byte, 12)))
-	v.AddStep(fmt.Sprintf("   │ Server Write IV: %x", make([]byte, 12)))
-	v.AddStep("   └─────────────────────────────────────┘")
-	v.AddSeparator()
-
-	v.AddStep("Handshake Complete!")
-	v.AddStep("===================")
-	v.AddStep("• X25519 key exchange successful")
-	v.AddStep("• Certificate verified")
-	v.AddStep("• Session keys derived")
-	v.AddStep("• Ready for encrypted communication")
-	v.AddSeparator()
-
-	// Final result
-	result := "Successfully demonstrated X25519 key exchange and AES encryption"
+	result := "Successfully demonstrated X25519 key exchange and AES-GCM encryption"
 	return result, v.GetSteps(), nil
+}
+
+// --- explanatory sections --------------------------------------------------
+
+func addX25519Intro(v *utils.Visualizer) {
+	v.AddStep("📌 What is X25519?")
+	v.AddStep("X25519 is Diffie-Hellman done on the elliptic curve Curve25519 (an ECDH scheme).")
+	v.AddStep("Same goal as classic DH (menu 8) — agree a shared secret over an open channel —")
+	v.AddStep("but using curve point multiplication instead of modular exponentiation.")
+	v.AddNote("It is KEY AGREEMENT, not encryption, and it is the default in TLS 1.3, Signal,")
+	v.AddNote("WireGuard, and modern SSH.")
+	v.AddSeparator()
+
+	v.AddStep("📈 Why it replaced classic DH")
+	v.AddStep("• Smaller: 32-byte keys vs 256+ bytes for 2048-bit DH — same or better security.")
+	v.AddStep("• Faster: curve scalar multiplication beats big modular exponentiation.")
+	v.AddStep("• Safer by design: one fixed, vetted curve — no prime/parameter choices to get")
+	v.AddStep("  wrong, and constant-time by construction so timing attacks don't leak the key.")
+	v.AddSeparator()
+}
+
+func addX25519Diagram(v *utils.Visualizer) {
+	v.AddStep("Key Exchange Flow:")
+	v.AddStep("┌─────────┐                    ┌─────────┐")
+	v.AddStep("│  Alice  │                    │   Bob   │")
+	v.AddStep("└────┬────┘                    └────┬────┘")
+	v.AddStep("     │  a (secret)      (secret) b  │")
+	v.AddStep("     │  A = a·G  ───────────►  A    │")
+	v.AddStep("     │      B    ◄───────────  B = b·G")
+	v.AddStep("     │  s = a·B                s = b·A")
+	v.AddStep("     │        both equal (a·b)·G    │")
+	v.AddStep("     │  HKDF → AES key   HKDF → AES key")
+	v.AddStep("┌────┴────┐                    ┌────┴────┐")
+	v.AddStep("│  Alice  │                    │   Bob   │")
+	v.AddStep("└─────────┘                    └─────────┘")
+	v.AddNote("G is the fixed base point; · is curve scalar multiplication (the one-way op).")
+	v.AddSeparator()
+}
+
+// addX25519Performance times X25519 against a comparable 2048-bit modular
+// exponentiation (classic DH's core operation) and reports the rough ratio.
+func addX25519Performance(v *utils.Visualizer, startTime time.Time) {
+	v.AddStep("⚡ Performance (rough, this machine)")
+	x25519Duration := time.Since(startTime)
+	v.AddStep(fmt.Sprintf("Full X25519 exchange + HKDF + AES demo: %v", x25519Duration.Round(time.Microsecond)))
+
+	// One 2048-bit modular exponentiation ≈ the core cost of a classic DH op.
+	dhStart := time.Now()
+	mod := new(big.Int).Lsh(big.NewInt(1), 2048)
+	base := big.NewInt(2)
+	exp, _ := rand.Int(rand.Reader, mod)
+	_ = new(big.Int).Exp(base, exp, mod)
+	dhDuration := time.Since(dhStart)
+	v.AddStep(fmt.Sprintf("One 2048-bit modular exponentiation (classic DH's core op): %v", dhDuration.Round(time.Microsecond)))
+	v.AddNote("Indicative only — a single sample. In practice X25519 is several times faster than")
+	v.AddNote("2048-bit DH for equivalent security, which is why modern protocols switched to it.")
+	v.AddSeparator()
+}
+
+func addX25519Security(v *utils.Visualizer) {
+	v.AddStep("🔒 Security considerations")
+	v.AddStep("• X25519 gives NO authentication on its own — an active attacker can sit in the")
+	v.AddStep("  middle and run a separate exchange with each side (MITM). It MUST be combined")
+	v.AddStep("  with authentication: TLS certificates, signatures, or a pre-shared key.")
+	v.AddStep("• Use EPHEMERAL keys per session for Perfect Forward Secrecy — a later key")
+	v.AddStep("  compromise then cannot decrypt past recorded traffic.")
+	v.AddStep("• Never use the raw shared point as a key; always run it through a KDF (HKDF).")
+	v.AddStep("• Use a vetted constant-time library (golang.org/x/crypto/curve25519). Never")
+	v.AddStep("  hand-roll curve arithmetic.")
+	v.AddStep("Curve25519's properties this relies on:")
+	v.AddStep("  • constant-time operations by design")
+	v.AddStep("  • resistant to side-channel attacks")
+	v.AddStep("  • better protection against timing attacks")
+	v.AddStep("  • no known practical attacks against Curve25519")
+	v.AddStep("  • smaller attack surface due to simpler implementation")
+	v.AddSeparator()
+}
+
+func addTLS13Flow(v *utils.Visualizer) {
+	v.AddStep("📚 How TLS 1.3 uses X25519")
+	v.AddStep("1. ClientHello — client offers key-exchange groups (X25519, P-256, …) and sends")
+	v.AddStep("   an ephemeral X25519 public key.")
+	v.AddStep("2. ServerHello — server picks X25519 and sends its own ephemeral public key.")
+	v.AddStep("3. Both sides run X25519 to get the shared secret, then HKDF to derive traffic keys.")
+	v.AddStep("4. The server authenticates with a certificate + signature (this is what stops MITM).")
+	v.AddStep("5. Finished messages verify the handshake; encrypted application data flows using")
+	v.AddStep("   an AEAD cipher (AES-GCM or ChaCha20-Poly1305, menu 11).")
+	v.AddNote("Ephemeral X25519 keys give TLS 1.3 forward secrecy by default; static RSA key")
+	v.AddNote("exchange was removed in TLS 1.3 for exactly this reason.")
 }

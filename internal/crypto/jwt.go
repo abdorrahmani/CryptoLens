@@ -63,19 +63,53 @@ func (p *JWTProcessor) Configure(config map[string]interface{}) error {
 
 // Process implements the Processor interface for JWT
 func (p *JWTProcessor) Process(text string, operation string) (string, []string, error) {
+	if operation != OperationEncrypt && operation != OperationDecrypt {
+		return "", nil, fmt.Errorf("invalid operation: %s (must be 'encrypt' to sign or 'decrypt' to verify)", operation)
+	}
+
 	v := utils.NewVisualizer()
+	addJWTIntro(v)
 
-	// Add introduction
-	v.AddStep("JWT (JSON Web Token) Processing")
-	v.AddStep("=============================")
-	v.AddNote("JWT is a compact, URL-safe means of representing claims between two parties")
-	v.AddNote("A JWT consists of three parts: Header, Payload, and Signature")
-	v.AddSeparator()
-
-	if operation == "encrypt" {
+	if operation == OperationEncrypt {
 		return p.encodeJWT(text, v)
 	}
 	return p.decodeJWT(text, v)
+}
+
+// addJWTIntro explains what a JWT is and, crucially, that it is signed — not
+// encrypted.
+func addJWTIntro(v *utils.Visualizer) {
+	v.AddStep("📌 What is a JWT?")
+	v.AddStep("A JSON Web Token is a compact, URL-safe token that carries CLAIMS (facts about a")
+	v.AddStep("user or session) between parties. It is the standard for stateless auth: a server")
+	v.AddStep("issues a signed token, the client presents it, and the server trusts it without a")
+	v.AddStep("database lookup because the signature proves it was not tampered with.")
+	v.AddSeparator()
+
+	v.AddStep("🔢 Anatomy: three Base64URL parts joined by dots")
+	v.AddStep("  header . payload . signature")
+	v.AddStep("• Header  — which signing algorithm and token type (e.g. {\"alg\":\"HS256\",\"typ\":\"JWT\"})")
+	v.AddStep("• Payload — the claims (JSON): who, what, and when it expires")
+	v.AddStep("• Signature — signs base64url(header)+\".\"+base64url(payload) so tampering is detectable")
+	v.AddStep("Header and payload use Base64URL (menu 1's URL-safe variant), NOT encryption.")
+	v.AddNote("⚠️ A JWT is SIGNED, not ENCRYPTED. Anyone can Base64-decode and read the payload —")
+	v.AddNote("never put passwords or secrets in it. The signature only proves integrity + origin.")
+	v.AddSeparator()
+}
+
+// addJWTSecurity covers the JWT-specific pitfalls that cause real breaches.
+func addJWTSecurity(v *utils.Visualizer) {
+	v.AddSeparator()
+	v.AddStep("🔒 JWT security pitfalls")
+	v.AddStep("• The 'alg: none' attack: some libraries once accepted a token whose header said")
+	v.AddStep("  alg=none and skipped signature checks entirely — instant forgery. Always pin the")
+	v.AddStep("  expected algorithm (this tool rejects a token whose alg ≠ the configured one).")
+	v.AddStep("  See the JWT None Algorithm attack simulation (menu 12).")
+	v.AddStep("• Algorithm-confusion (RS256→HS256): an attacker signs with the PUBLIC RSA key while")
+	v.AddStep("  the server verifies HMAC using that same public key as the secret. Pinning alg stops it.")
+	v.AddStep("• Always verify exp/nbf and the signature; never trust an unverified payload.")
+	v.AddStep("• HS256 secrets must be long and random; short secrets are brute-forceable offline.")
+	v.AddNote("The payload is readable by anyone — treat it as public, integrity-protected data.")
 }
 
 func (p *JWTProcessor) encodeJWT(text string, v *utils.Visualizer) (string, []string, error) {
@@ -200,14 +234,18 @@ func (p *JWTProcessor) encodeJWT(text string, v *utils.Visualizer) (string, []st
 	}
 	v.AddSeparator()
 
-	v.AddStep("Token Signature:")
-	v.AddStep(fmt.Sprintf("Algorithm: %s", p.algorithm))
-	v.AddStep(fmt.Sprintf("Signature: %s", parts[2]))
+	v.AddStep("📈 What actually gets signed")
+	v.AddStep("The signing input is the header and payload, Base64URL-encoded and joined by a dot:")
+	v.AddStep(fmt.Sprintf("  signing input = %s.%s", parts[0], parts[1]))
+	v.AddStep(fmt.Sprintf("  signature = Sign(%s, signing input) = %s", p.algorithm, parts[2]))
+	v.AddNote("Change one byte of the header or payload and the signature no longer matches —")
+	v.AddNote("that is what makes the claims trustworthy without storing them server-side.")
 	v.AddSeparator()
 
-	v.AddStep("Complete JWT:")
+	v.AddStep("Complete JWT (header.payload.signature):")
 	v.AddStep(tokenString)
 
+	addJWTSecurity(v)
 	return tokenString, v.GetSteps(), nil
 }
 
@@ -279,6 +317,10 @@ func (p *JWTProcessor) decodeJWT(tokenString string, v *utils.Visualizer) (strin
 	}
 
 	v.AddStep("✅ Signature Verification Successful")
+	v.AddStep(fmt.Sprintf("Recomputed the %s signature over base64url(header).base64url(payload)", p.algorithm))
+	v.AddStep("and it matched — the token is authentic and its claims are untampered.")
+	v.AddNote("Verification also enforces exp/nbf: an expired or not-yet-valid token is rejected")
+	v.AddNote("here even if the signature is correct.")
 	v.AddSeparator()
 	v.AddStep("Token Signature:")
 	v.AddStep(fmt.Sprintf("Algorithm: %s", p.algorithm))

@@ -5,63 +5,80 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.27.1'
+
 jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
-
-      - name: Install mingw-w64 (for windres)
-        run: sudo apt-get update && sudo apt-get install -y mingw-w64
-
-      - name: Symlink windres
-        run: sudo ln -s /usr/bin/x86_64-w64-mingw32-windres /usr/local/bin/windres
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
-        with:
-          distribution: goreleaser
-          version: v2.9.0
-          args: release --clean --config=.goreleaser.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
 
       - name: Run tests
-        run: go test -v ./...
+        run: go test -race -v ./...
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: latest 
+          version: latest
+
+  goreleaser:
+    name: GoReleaser
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+
+      - name: Install mingw-w64 (for windres)
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Symlink windres
+        run: sudo ln -sf /usr/bin/x86_64-w64-mingw32-windres /usr/local/bin/windres
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean --config=.goreleaser.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

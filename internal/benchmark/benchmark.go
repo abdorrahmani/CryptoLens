@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/abdorrahmani/cryptolens/internal/crypto"
-	"github.com/abdorrahmani/cryptolens/internal/input"
 	"github.com/abdorrahmani/cryptolens/internal/utils"
 )
 
@@ -39,13 +38,19 @@ func getPlatformInfo() PlatformInfo {
 	}
 }
 
-// RunHMACBenchmark runs a benchmark of all HMAC algorithms
-func RunHMACBenchmark() (string, []string, error) {
+// RunHMACBenchmark runs a benchmark of all HMAC algorithms.
+// text is the sample input to hash and iterations is the number of runs per
+// algorithm. Empty/non-positive values fall back to sensible defaults.
+func RunHMACBenchmark(text string, iterations int) (string, []string, error) {
 	v := utils.NewVisualizer()
 	setupBenchmark(v, "HMAC")
 
-	text := getSampleText("Hello, World!")
-	iterations := getIterations(10000, 1000000)
+	if text == "" {
+		text = "Hello, World!"
+	}
+	if iterations <= 0 {
+		iterations = 10000
+	}
 
 	v.AddStep(fmt.Sprintf("Running benchmark with %d iterations...", iterations))
 	v.AddStep(fmt.Sprintf("Sample text: %s", text))
@@ -74,13 +79,19 @@ func RunHMACBenchmark() (string, []string, error) {
 	return "", v.GetSteps(), nil
 }
 
-// RunPBKDFBenchmark runs a benchmark of all PBKDF algorithms
-func RunPBKDFBenchmark() (string, []string, error) {
+// RunPBKDFBenchmark runs a benchmark of all PBKDF algorithms.
+// text is the sample password and iterations is the number of derivations per
+// algorithm. Empty/non-positive values fall back to sensible defaults.
+func RunPBKDFBenchmark(text string, iterations int) (string, []string, error) {
 	v := utils.NewVisualizer()
 	setupBenchmark(v, "PBKDF")
 
-	text := getSampleText("Hello")
-	iterations := getPBKDFIterations()
+	if text == "" {
+		text = "Hello"
+	}
+	if iterations <= 0 {
+		iterations = 100
+	}
 
 	v.AddStep(fmt.Sprintf("Running benchmark with %d iterations...", iterations))
 	v.AddStep(fmt.Sprintf("Sample text: %s", text))
@@ -115,35 +126,6 @@ func setupBenchmark(v *utils.Visualizer, name string) {
 	v.AddSeparator()
 }
 
-func getSampleText(defaultValue string) string {
-	fmt.Printf("\nEnter sample text for benchmarking (default: '%s'): ", defaultValue)
-	return input.GetTextInput(defaultValue)
-}
-
-func getIterations(defaultValue, maxValue int) int {
-	iterations := input.GetIntInput("\nEnter number of iterations (default: 10000): ", 1, maxValue)
-	if iterations == 0 {
-		iterations = defaultValue
-	}
-	return iterations
-}
-
-func getPBKDFIterations() int {
-	fmt.Print("\nEnter number of iterations (default: 100): ")
-	fmt.Print("\n⚠️  Warning: Large numbers will take a long time to complete")
-	fmt.Print("\n    Recommended: 10-100 iterations")
-	fmt.Print("\n    PBKDF2: ~15ms per operation")
-	fmt.Print("\n    Argon2id: ~36ms per operation")
-	fmt.Print("\n    Scrypt: ~266ms per operation")
-	fmt.Print("\n    (1000 iterations ≈ 4.5 minutes total)\n")
-
-	iterations := input.GetIntInput("\nEnter your choice: ", 1, 1000)
-	if iterations == 0 {
-		iterations = 100
-	}
-	return iterations
-}
-
 func estimatePBKDFTime(iterations int) time.Duration {
 	return time.Duration(iterations) * (15 + 36 + 266) * time.Millisecond
 }
@@ -157,18 +139,13 @@ func runAlgorithmBenchmark(
 	results := make([]BenchmarkResult, len(algorithms))
 	platformInfo := getPlatformInfo()
 
-	done := make(chan bool)
-	go showLoadingAnimation(done)
-
 	for i, algo := range algorithms {
 		processor, err := createProcessor(algo)
 		if err != nil {
-			done <- true
 			return nil
 		}
 
 		if _, _, err := processor.Process(text, "encrypt"); err != nil {
-			done <- true
 			return nil
 		}
 
@@ -181,7 +158,6 @@ func runAlgorithmBenchmark(
 		start := time.Now()
 		for j := 0; j < iterations; j++ {
 			if _, _, err := processor.Process(text, "encrypt"); err != nil {
-				done <- true
 				return nil
 			}
 		}
@@ -201,28 +177,11 @@ func runAlgorithmBenchmark(
 		}
 	}
 
-	done <- true
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].duration < results[j].duration
 	})
 
 	return results
-}
-
-func showLoadingAnimation(done chan bool) {
-	loadingChars := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-	i := 0
-	for {
-		select {
-		case <-done:
-			fmt.Print("\r\033[K")
-			return
-		default:
-			fmt.Printf("\r%s Running benchmark... %s", loadingChars[i], strings.Repeat(".", (i%5)+1))
-			i = (i + 1) % len(loadingChars)
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
 }
 
 func displayHMACResults(v *utils.Visualizer, results []BenchmarkResult, iterations int) {

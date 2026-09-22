@@ -1,18 +1,32 @@
 # ChaCha20-Poly1305 🔐
 
 ## Overview
-ChaCha20-Poly1305 is a modern authenticated encryption algorithm that combines the ChaCha20 stream cipher with the Poly1305 message authentication code (MAC). It provides both confidentiality and authenticity in a single operation, making it highly secure and efficient.
+ChaCha20-Poly1305 is a modern **AEAD** cipher — Authenticated Encryption with Associated Data — that combines the **ChaCha20** stream cipher (confidentiality) with the **Poly1305** one-time MAC (integrity + authenticity) in a single operation. It is the standard alternative to AES-GCM, used in TLS 1.3, WireGuard, and SSH, and it shines in software / on mobile where the CPU lacks AES acceleration.
+
+> **AEAD ≠ plain encryption.** Unlike AES-CBC (menu 3), which only hides data, ChaCha20-Poly1305 also *detects tampering*: decryption verifies a 16-byte tag first and refuses to release any plaintext if a single bit was altered.
+
+## How It Works (encrypt-then-MAC)
+1. **ChaCha20** derives a keystream from the key + nonce and XORs it with the plaintext (a stream cipher — ciphertext is the same length as the plaintext, no padding).
+2. **Poly1305** computes a tag over the AAD + ciphertext using a one-time key derived from ChaCha20.
+3. On decryption the tag is **recomputed and checked first** — tampered data is rejected before it is ever decrypted, which structurally avoids the padding-oracle class of bugs.
+
+### The three inputs
+| Input | Size | Secret? | Rule |
+|-------|------|---------|------|
+| Key | 32 bytes (256-bit) | Yes | Shared by both sides |
+| Nonce | 12 bytes (96-bit) | No (sent in clear) | **Unique per message** — reuse is catastrophic |
+| AAD | any | No (authenticated only) | Optional; must match on decrypt |
+
+Output layout in CryptoLens: `base64(nonce ‖ ciphertext ‖ tag)`.
+
+> **⚠️ Nonce reuse is catastrophic.** Encrypting two messages with the same key+nonce leaks their XOR *and* breaks Poly1305's authentication. A random 96-bit nonce is safe for a moderate message count; for very high volumes use **XChaCha20-Poly1305** (192-bit nonce) or a counter. See the **Nonce Reuse** attack simulation (menu 12).
 
 ## Features
-- Authenticated encryption (AEAD)
-- 256-bit key size
-- 96-bit nonce size
-- 128-bit authentication tag
-- Additional Authenticated Data (AAD) support
-- Tampering detection
-- Detailed step-by-step process visualization
-- Interactive tampering tests
-- Performance timing measurements
+- Authenticated encryption (AEAD): confidentiality + integrity in one step
+- 256-bit key, 96-bit nonce, 128-bit tag
+- Additional Authenticated Data (AAD) support (via configuration)
+- **Automatic built-in tamper test** — flips a ciphertext bit and shows decryption is rejected
+- Non-interactive: works cleanly in the TUI (no stdin prompts)
 - File-based key storage
 
 ## Usage

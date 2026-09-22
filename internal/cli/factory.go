@@ -38,6 +38,8 @@ func NewCryptoProcessorFactory() *CryptoProcessorFactory {
 	factory.RegisterProcessor(9, createX25519Processor)
 	factory.RegisterProcessor(10, createJWTProcessor)
 	factory.RegisterProcessor(11, createChaCha20Poly1305Processor)
+	factory.RegisterProcessor(12, createMLKEMProcessor)
+	factory.RegisterProcessor(13, createMLDSAProcessor)
 
 	return factory
 }
@@ -68,7 +70,7 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 	case 1:
 		processor := attacks.NewECBProcessor()
 		if f.config != nil {
-			if err := processor.Configure(map[string]interface{}{
+			if err := processor.Configure(map[string]any{
 				"keySize": f.config.GetAESConfig().DefaultKeySize,
 			}); err != nil {
 				return nil, fmt.Errorf("failed to configure ECB processor: %w", err)
@@ -78,7 +80,7 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 	case 2:
 		processor := attacks.NewNonceReuseProcessor()
 		if f.config != nil {
-			if err := processor.Configure(map[string]interface{}{
+			if err := processor.Configure(map[string]any{
 				"keySize": f.config.GetChaCha20Poly1305Config().KeySize,
 			}); err != nil {
 				return nil, fmt.Errorf("failed to configure nonce reuse processor: %w", err)
@@ -88,7 +90,7 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 	case 3:
 		processor := attacks.NewTimingAttackProcessor()
 		// Always configure the timing attack processor with a 256-bit key
-		if err := processor.Configure(map[string]interface{}{
+		if err := processor.Configure(map[string]any{
 			"keySize": 256, // HMAC-SHA256 uses 256-bit keys
 		}); err != nil {
 			return nil, fmt.Errorf("failed to configure timing attack processor: %w", err)
@@ -115,7 +117,7 @@ func (f *CryptoProcessorFactory) CreateAttackProcessor(choice int) (crypto.Proce
 func createBase64Processor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewBase64Processor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"paddingChar": cfg.GetBase64Config().PaddingChar,
 		}
 		if err := processor.Configure(config); err != nil {
@@ -128,7 +130,7 @@ func createBase64Processor(cfg *config.Config) (crypto.Processor, error) {
 func createCaesarProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewCaesarProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"shift": cfg.GetCaesarConfig().DefaultShift,
 		}
 		if err := processor.Configure(config); err != nil {
@@ -141,7 +143,7 @@ func createCaesarProcessor(cfg *config.Config) (crypto.Processor, error) {
 func createAESProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewAESProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"keySize": cfg.GetAESConfig().DefaultKeySize,
 			"keyFile": cfg.GetAESConfig().KeyFile,
 		}
@@ -164,7 +166,7 @@ func createRSAProcessor(cfg *config.Config) (crypto.Processor, error) {
 		if keySize < 2048 {
 			keySize = 2048
 		}
-		config := map[string]interface{}{
+		config := map[string]any{
 			"keySize":        keySize,
 			"publicKeyFile":  cfg.GetRSAConfig().PublicKeyFile,
 			"privateKeyFile": cfg.GetRSAConfig().PrivateKeyFile,
@@ -179,7 +181,7 @@ func createRSAProcessor(cfg *config.Config) (crypto.Processor, error) {
 func createHMACProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewHMACProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"keySize":       cfg.GetHMACConfig().KeySize,
 			"keyFile":       cfg.GetHMACConfig().KeyFile,
 			"hashAlgorithm": cfg.GetHMACConfig().HashAlgorithm,
@@ -194,7 +196,7 @@ func createHMACProcessor(cfg *config.Config) (crypto.Processor, error) {
 func createPBKDFProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewPBKDFProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"algorithm":  cfg.GetPBKDFConfig().Algorithm,
 			"iterations": cfg.GetPBKDFConfig().Iterations,
 			"memory":     cfg.GetPBKDFConfig().Memory,
@@ -211,7 +213,7 @@ func createPBKDFProcessor(cfg *config.Config) (crypto.Processor, error) {
 func createDHProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewDHProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"keySize":        cfg.GetDHConfig().KeySize,
 			"generator":      cfg.GetDHConfig().Generator,
 			"primeFile":      cfg.GetDHConfig().PrimeFile,
@@ -228,7 +230,7 @@ func createDHProcessor(cfg *config.Config) (crypto.Processor, error) {
 func createX25519Processor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewX25519Processor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"privateKeyFile": cfg.GetX25519Config().PrivateKeyFile,
 		}
 		if err := processor.Configure(config); err != nil {
@@ -241,7 +243,7 @@ func createX25519Processor(cfg *config.Config) (crypto.Processor, error) {
 func createJWTProcessor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewJWTProcessor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"algorithm": cfg.GetJWTConfig().Algorithm,
 			"keyFile":   cfg.GetJWTConfig().KeyFile,
 		}
@@ -252,10 +254,18 @@ func createJWTProcessor(cfg *config.Config) (crypto.Processor, error) {
 	return processor, nil
 }
 
+func createMLKEMProcessor(_ *config.Config) (crypto.Processor, error) {
+	return crypto.NewMLKEMProcessor(), nil
+}
+
+func createMLDSAProcessor(_ *config.Config) (crypto.Processor, error) {
+	return crypto.NewMLDSAProcessor(), nil
+}
+
 func createChaCha20Poly1305Processor(cfg *config.Config) (crypto.Processor, error) {
 	processor := crypto.NewChaCha20Poly1305Processor()
 	if cfg != nil {
-		config := map[string]interface{}{
+		config := map[string]any{
 			"keySize":   cfg.GetChaCha20Poly1305Config().KeySize,
 			"keyFile":   cfg.GetChaCha20Poly1305Config().KeyFile,
 			"nonceSize": cfg.GetChaCha20Poly1305Config().NonceSize,

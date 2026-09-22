@@ -3,6 +3,7 @@ package crypto
 import (
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -74,6 +75,60 @@ func TestDHProcessor_Process(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("Expected step not found: %s", expectedStep)
+		}
+	}
+}
+
+// The output must teach the core ideas: key agreement (not encryption), the
+// discrete-log trapdoor, a concrete worked example, and forward secrecy.
+func TestDHProcessor_EducationalContent(t *testing.T) {
+	processor := NewDHProcessor()
+	if err := processor.Configure(map[string]interface{}{
+		"primeFile": filepath.Join(t.TempDir(), "prime.bin"),
+	}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := processor.Process("", "")
+	if err != nil {
+		t.Fatalf("Process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{
+		"KEY AGREEMENT",           // not encryption
+		"discrete logarithm",      // the trapdoor
+		"Worked example",          // concrete demo
+		"g^(a·b) mod p",           // the symmetry
+		"Perfect Forward Secrecy", // PFS explained
+		"X25519",                  // pointer to menu 9
+	} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected DH steps to contain %q", needle)
+		}
+	}
+}
+
+// The toy example must contain the correct, verifiable arithmetic (p=23, g=5,
+// a=6, b=15 → A=8, B=19, shared=2) so the on-screen math is trustworthy.
+func TestDHProcessor_ToyExampleIsCorrect(t *testing.T) {
+	processor := NewDHProcessor()
+	if err := processor.Configure(map[string]interface{}{
+		"primeFile": filepath.Join(t.TempDir(), "prime.bin"),
+	}); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	_, steps, err := processor.Process("", "")
+	if err != nil {
+		t.Fatalf("Process: %v", err)
+	}
+	joined := strings.Join(steps, "\n")
+	for _, needle := range []string{
+		"5^6 mod 23 = 8",
+		"5^15 mod 23 = 19",
+		"19^6 mod 23 = 2",
+		"8^15 mod 23 = 2",
+	} {
+		if !strings.Contains(joined, needle) {
+			t.Errorf("expected toy example to contain %q", needle)
 		}
 	}
 }

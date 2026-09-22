@@ -1,21 +1,23 @@
 # RSA (Rivest–Shamir–Adleman) 🔐
 
 ## Overview
-RSA is an asymmetric encryption algorithm that uses a pair of keys: a public key for encryption and a private key for decryption. CryptoLens implements RSA with configurable key sizes (1024, 2048, or 4096 bits), defaulting to 2048 bits for a balance of security and performance.
+RSA (1977) was the first practical **public-key** cipher. It is **asymmetric**: it uses a *key pair* rather than one shared secret — a public key that anyone can use to encrypt, and a private key that only the owner uses to decrypt. CryptoLens implements RSA with configurable key sizes (1024/2048/4096 bits, default 2048) and PKCS#1 v1.5 padding, and walks through the real key parameters, a live toy-math example, and the encrypt/decrypt flow.
+
+> **The padlock analogy:** hand out open padlocks freely (the public key). Anyone can snap one shut on a box and send it to you, but only you hold the key that opens it (the private key). That asymmetry is the whole idea.
 
 ## Features
-- Configurable key sizes (1024/2048/4096 bits)
-- Automatic key generation and file-based storage
-- PEM-encoded public/private key files
-- Base64 encoded output for ciphertext
-- Step-by-step process visualization
-- Secure key management
+- Configurable key sizes (1024/2048/4096 bits), PEM key storage
+- Shows the real key parameters: modulus size, public exponent `e`, max message size
+- **Live worked example** on tiny primes (p=61, q=53) computing keygen, encrypt, and decrypt
+- Friendly, specific error when a message exceeds the size limit
+- Base64 ciphertext output
+- Real-world context: hybrid encryption, signatures, quantum threat
 
 ## Usage
 
-### Command Line Interface
-```bash
-# Select RSA from the main menu (Option 5)
+### Terminal User Interface
+```
+# Select RSA from the main menu
 5. RSA Encryption/Decryption
 
 # Choose operation
@@ -30,189 +32,78 @@ Enter text to process: Your secret message
 ```go
 import "github.com/abdorrahmani/cryptolens/internal/crypto"
 
-// Create RSA processor
-rsaProcessor := crypto.NewRSAProcessor()
+rsa := crypto.NewRSAProcessor()
+rsa.Configure(map[string]interface{}{
+    "keySize":        2048,
+    "publicKeyFile":  "keys/rsa_public.pem",
+    "privateKeyFile": "keys/rsa_private.pem",
+})
 
-// Configure the processor
-config := map[string]interface{}{
-    "keySize": 2048,  // Optional: 1024, 2048, or 4096 bits
-    "publicKeyFile": "keys/custom_rsa_public.pem",   // Optional: custom public key file path
-    "privateKeyFile": "keys/custom_rsa_private.pem", // Optional: custom private key file path
-}
-rsaProcessor.Configure(config)
-
-// Encrypt
-encrypted, steps, err := rsaProcessor.Process("Your secret message", "encrypt")
-
-// Decrypt
-decrypted, steps, err := rsaProcessor.Process(encrypted, "decrypt")
+encrypted, steps, err := rsa.Process("Your secret message", crypto.OperationEncrypt)
+decrypted, steps, err := rsa.Process(encrypted, crypto.OperationDecrypt)
 ```
 
-## Technical Details
+## How It Works
 
-### Key Management
-- Configurable key sizes (1024/2048/4096 bits)
-- Secure random key generation
-- File-based key storage in `keys` directory
-- PEM-encoded key files for interoperability
-- Automatic key generation if not exists
-- Custom key file path support
+### The trapdoor
+Multiplying two large primes `p · q = n` is easy; **factoring** `n` back into `p` and `q` is infeasible for a large enough `n`. The public key exposes `n`, but only someone who knows the factors can derive the private key. That "easy one way, infeasible to reverse — unless you hold the trapdoor" is what makes RSA secure.
 
-### Encryption Process
-1. Input validation
-2. Convert text to bytes
-3. Encrypt with public key (PKCS#1 v1.5 padding)
-4. Base64 encode the ciphertext
-
-### Decryption Process
-1. Base64 decode the input
-2. Decrypt with private key (PKCS#1 v1.5 padding)
-3. Convert result to text
-
-### Security Features
-- Private key stored securely (0600 permissions)
-- Public key can be shared freely
-- Input validation and error handling
-- Key size selection for desired security level
-- Security notes and warnings in process steps
-
-## Examples
-
-### Encryption Example
-```bash
-Input: HelloRSA
-Output: Y2lwaGVydGV4dA==
-
-Processing Steps:
-RSA Encryption Process
-=============================
-Note:  RSA is an asymmetric encryption algorithm
-Note:  Using 2048-bit keys
-----------------------------------------
-Key Information:
-Public Key Size: 2048 bits
-Private Key Size: 2048 bits
-----------------------------------------
-Encryption Process:
-1. Convert text to bytes
-2. Use public key to encrypt
-3. Base64 encode the result
-----------------------------------------
-Input Text:  HelloRSA
-    ↓↓↓
-Text as Bytes:  48 65 6c 6c 6f 52 53 41
-    ↓↓↓
-Encrypted Data:  ...
-    ↓↓↓
-Base64 Encoded Result:  Y2lwaGVydGV4dA==
-----------------------------------------
-Note:  Security Considerations:
-Note:  1. RSA encryption uses the public key
-Note:  2. The public key can be shared freely
-Note:  3. RSA has a maximum message size based on key size
-Note:  4. For large messages, use hybrid encryption (RSA + AES)
-----------------------------------------
-How RSA Works:
-1. Generate two large prime numbers (p and q)
-2. Calculate n = p * q
-3. Calculate φ(n) = (p-1) * (q-1)
-4. Choose public exponent e (usually 65537)
-5. Calculate private exponent d where (d * e) mod φ(n) = 1
-6. Public key is (n, e)
-7. Private key is (n, d)
-8. Encryption: c = m^e mod n
-9. Decryption: m = c^d mod n
+### Key generation (worked example with tiny primes)
+Real keys use primes hundreds of digits long; the same math on small numbers:
 ```
-
-### Decryption Example
-```bash
-Input: Y2lwaGVydGV4dA==
-Output: HelloRSA
-
-Processing Steps:
-RSA Encryption Process
-=============================
-Note:  RSA is an asymmetric encryption algorithm
-Note:  Using 2048-bit keys
-----------------------------------------
-Key Information:
-Public Key Size: 2048 bits
-Private Key Size: 2048 bits
-----------------------------------------
-Decryption Process:
-1. Base64 decode the input
-2. Use private key to decrypt
-3. Convert result to text
-----------------------------------------
-Encrypted Input (Base64):  Y2lwaGVydGV4dA==
-    ↓↓↓
-Decoded Data:  ...
-    ↓↓↓
-Decrypted Text:  HelloRSA
-----------------------------------------
-Note:  Security Considerations:
-Note:  1. RSA decryption requires the private key
-Note:  2. The private key must be kept secure
-Note:  3. RSA is vulnerable to timing attacks if not properly implemented
-Note:  4. The security depends on the key size and proper key management
+1. Pick primes    p = 61, q = 53
+2. Modulus        n = p·q = 3233
+3. Totient        φ(n) = (p−1)(q−1) = 3120
+4. Public exp     e = 17            (coprime with φ)
+5. Private exp    d = e⁻¹ mod φ = 2753   (so e·d mod φ = 1)
+   Public key  = (n=3233, e=17)
+   Private key = (n=3233, d=2753)
+6. Encrypt m=65:  c = m^e mod n = 2790
+7. Decrypt c=2790: m = c^d mod n = 65   ✅
 ```
+Security rests on step 5: without `p` and `q` you cannot compute `φ`, and without `φ` you cannot find `d`.
 
-## Implementation Details
+### Encryption / Decryption
+```
+Encrypt (public key):   c = m^e mod n
+Decrypt (private key):  m = c^d mod n
+```
+The public exponent `e` is almost always **65537** — prime, with few 1-bits, so encryption is fast. PKCS#1 v1.5 padding mixes in **random bytes**, so encrypting the same text twice yields different ciphertexts; that randomization is essential to security. The ciphertext is always exactly the modulus size (256 bytes for RSA-2048), regardless of message length.
 
-### RSA Algorithm Steps
-1. Key Generation
-   - Generate two large prime numbers (p, q)
-   - Compute modulus n = p * q
-   - Compute totient φ(n) = (p-1)*(q-1)
-   - Choose public exponent e (commonly 65537)
-   - Compute private exponent d such that (d * e) mod φ(n) = 1
-   - Public key: (n, e)
-   - Private key: (n, d)
+## The Message-Size Limit
+RSA encrypts a single number smaller than `n`, so the plaintext must fit in one block:
 
-2. Encryption
-   - Convert plaintext to integer m
-   - Compute ciphertext c = m^e mod n
+| Key size | Max message (PKCS#1 v1.5) |
+|----------|---------------------------|
+| 1024-bit | 117 bytes |
+| 2048-bit | 245 bytes |
+| 4096-bit | 501 bytes |
 
-3. Decryption
-   - Compute plaintext m = c^d mod n
-   - Convert integer m back to text
+(`modulus bytes − 11`.) CryptoLens returns a clear error if you exceed it. Real systems don't encrypt bulk data with RSA directly — see hybrid encryption below.
 
-### CryptoLens Implementation
-- Uses Go's `crypto/rsa` and `crypto/x509` for key generation and encryption
-- PEM-encoded key files for compatibility
-- PKCS#1 v1.5 padding for encryption/decryption
-- Base64 encoding for output
-- Step-by-step visualization using CryptoLens visualizer
+## RSA in the Real World
+- **Hybrid encryption:** RSA is slow and size-limited, so TLS and PGP use RSA only to *wrap a random AES key*, then encrypt the actual data with AES (menu 3). This is the standard pattern.
+- **Digital signatures:** sign with the *private* key, verify with the *public* key — the reverse of encryption. Proves authenticity and integrity (see JWT RS256, menu 10).
+- **Padding matters:** "textbook" RSA with no padding is insecure. Modern code prefers **OAEP** over the PKCS#1 v1.5 used here, which has known padding-oracle pitfalls.
 
-## Best Practices
-1. Use at least 2048-bit keys for security
-2. Keep private keys secure (never share or expose)
-3. Public keys can be distributed freely
-4. For large data, use hybrid encryption (RSA for key exchange, AES for data)
-5. Regularly rotate keys and monitor key storage
-6. Validate all input data and handle errors
-7. Use secure random number generation for key creation
+## Security Considerations
+| Point | Detail |
+|-------|--------|
+| Key size | Use ≥ 2048-bit; 1024-bit is deprecated. 3072/4096-bit for long-term secrets |
+| Private key secrecy | Anyone with the private key can decrypt *and* forge signatures |
+| Quantum threat | A large quantum computer running **Shor's algorithm** would break RSA; hence the shift to post-quantum algorithms for long-lived data |
+| Alternatives | For key agreement, elliptic-curve methods like **X25519** (menu 9) are smaller and faster |
 
 ## Troubleshooting
-
-### Common Issues
-1. Key File Issues
-   - Check `keys` directory exists
-   - Verify file permissions (0600 for private key)
-   - Ensure key files are readable and valid PEM format
-
-2. Decryption Failures
-   - Verify input is valid base64
-   - Ensure correct key pair is used
-   - Check for message size limits (RSA can only encrypt data smaller than key size minus padding)
-
-3. Configuration Errors
-   - Valid key sizes: 1024, 2048, 4096
-   - Valid key file paths
-   - Proper directory permissions
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "message is N bytes but RSA-2048 … can encrypt at most 245" | Plaintext too large | Use hybrid encryption (RSA-wrap an AES key) |
+| "failed to decrypt (wrong key, corrupted data, or bad padding)" | Wrong key pair, altered ciphertext | Ensure the matching private key and intact Base64 |
+| "invalid base64 string" | Decrypt input isn't the encrypt output | Paste the exact Base64 ciphertext |
 
 ## References
-- [RSA Wikipedia](https://en.wikipedia.org/wiki/RSA_(cryptosystem))
-- [Go Crypto Package](https://pkg.go.dev/crypto/rsa)
-- [PKCS#1 v1.5 Padding](https://datatracker.ietf.org/doc/html/rfc8017)
-- [NIST Key Management Guidelines](https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final) 
+- [RSA (cryptosystem) — Wikipedia](https://en.wikipedia.org/wiki/RSA_(cryptosystem))
+- [PKCS#1 / RFC 8017](https://datatracker.ietf.org/doc/html/rfc8017)
+- [Shor's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Shor%27s_algorithm)
+- [NIST SP 800-57 — Key Management](https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final)
+- [Go `crypto/rsa` package](https://pkg.go.dev/crypto/rsa)
