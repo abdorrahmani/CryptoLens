@@ -181,6 +181,8 @@ func mainMenu() menu {
 			{id: 9, title: "X25519 Key Exchange"},
 			{id: 10, title: "JWT (JSON Web Token)"},
 			{id: 11, title: "ChaCha20-Poly1305 Encryption"},
+			{id: 12, title: "ML-KEM (Post-Quantum Key Encapsulation)"},
+			{id: 13, title: "ML-DSA (Post-Quantum Signatures)"},
 			{id: attackMenuID, title: "Attack Simulations", danger: true},
 		},
 	}
@@ -426,8 +428,11 @@ func (m model) postOperation() (tea.Model, tea.Cmd) {
 	case 10: // JWT
 		m.screen = screenJWTSelect
 		m.menu = jwtMenu()
-	case 8, 9: // DH / X25519 demonstrations
+	case 8, 9, 12: // DH / X25519 / ML-KEM key-agreement demonstrations
 		m.screen = screenConfirmRun
+	case 13: // ML-DSA signs a message
+		m.focusInput("Enter a message to sign", "", "")
+		m.screen = screenTextInput
 	default: // Base64, Caesar, AES, SHA-256, RSA, ChaCha20
 		m.focusInput("Enter text to process", "", "")
 		m.screen = screenTextInput
@@ -701,7 +706,7 @@ func (m model) confirmView() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render(m.resultTitle))
 	b.WriteString("\n\n")
-	b.WriteString(promptStyle.Render("Press enter to start the key exchange demonstration."))
+	b.WriteString(promptStyle.Render("Press enter to start the demonstration."))
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("enter run · esc back"))
 	return b.String()
@@ -763,6 +768,7 @@ func algoTitle(choice int) string {
 		1: "Base64", 2: "Caesar Cipher", 3: "AES", 4: "SHA-256",
 		5: "RSA", 6: "HMAC", 7: "PBKDF", 8: "Diffie-Hellman",
 		9: "X25519", 10: "JWT", 11: "ChaCha20-Poly1305",
+		12: "ML-KEM", 13: "ML-DSA",
 	}
 	if t, ok := titles[choice]; ok {
 		return t
