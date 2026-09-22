@@ -15,7 +15,7 @@
 </div>
 
 <div align="center">
-  <img src="assets/cmd.png" alt="CryptoLens Command Line Interface" width="600"/>
+  <img src="assets/cmd.png" alt="CryptoLens Command Line Interface" width="1300"/>
   <br/>
   <em>Interactive Command Line Interface</em>
 </div>
