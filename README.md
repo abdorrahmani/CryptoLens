@@ -39,7 +39,7 @@ best-practice defenses exist.
 ## 🌟 Highlights
 
 - 🎓 **Learning-first** — every algorithm is explained as it runs
-- 🔐 **Broad coverage** — 11 algorithms and protocols, from Base64 to X25519
+- 🔐 **Broad coverage** — 13 algorithms and protocols, from Base64 to post-quantum ML-KEM/ML-DSA
 - 🎯 **Attack simulations** — 5 hands-on demonstrations of cryptographic failures
 - 📊 **Built-in benchmarks** — compare HMAC hash functions and PBKDF algorithms
 - 🎨 **Readable output** — colored terminal output, ASCII art, and process diagrams
@@ -63,6 +63,8 @@ technical detail, security notes, and troubleshooting.
 | 9 | X25519 | Key exchange | [x25519.md](docs/x25519.md) |
 | 10 | JWT | Token signing | [jwt.md](docs/jwt.md) |
 | 11 | ChaCha20-Poly1305 | AEAD encryption | [chacha20poly1305.md](docs/chacha20poly1305.md) |
+| 12 | ML-KEM (Kyber) | Post-quantum key encapsulation | [mlkem.md](docs/mlkem.md) |
+| 13 | ML-DSA (Dilithium) | Post-quantum signatures | [mldsa.md](docs/mldsa.md) |
 
 ### Algorithm details
 
@@ -148,9 +150,14 @@ Select an operation:
 9. X25519 Key Exchange
 10. JWT (JSON Web Token)
 11. ChaCha20-Poly1305 Encryption
-12. Attack Simulations
-13. Exit
+12. ML-KEM (Post-Quantum Key Encapsulation)
+13. ML-DSA (Post-Quantum Signatures)
+   Attack Simulations
 ```
+
+Navigate with ↑/↓ and Enter; press q or Esc to quit. Post-quantum algorithms
+(12, 13) require Go 1.24+ for `crypto/mlkem` and a recent toolchain for
+`crypto/mldsa` (FIPS 203/204).
 
 Pick an operation (1–11), choose encrypt/decrypt where applicable, enter your
 text, and CryptoLens prints the full step-by-step process and result. Options
