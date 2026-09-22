@@ -17,7 +17,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const version = "1.4.0"
+const version = "2.0.0"
 
 // cryptoLensBanner is the ASCII logo shown on the main menu.
 const cryptoLensBanner = `
